@@ -1,0 +1,6 @@
+MASS_FLOW = 'kg/s'
+FORCE = 'N'
+TSFC = 'g/(kN*s)'
+ALTITUDE = 'ft'
+TEMPERATURE = 'degC'
+RPM = 'rpm'
