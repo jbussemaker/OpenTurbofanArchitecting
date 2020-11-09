@@ -3,8 +3,8 @@ from enum import Enum
 import openmdao.api as om
 import pycycle.api as pyc
 from dataclasses import dataclass
-import open_turb_arch.architecture.units as units
-from open_turb_arch.architecture.architecture import ArchElement
+import open_turb_arch.evaluation.architecture.units as units
+from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
 __all__= ['Compressor', 'CompressorMap', 'Burner', 'FuelType', 'Turbine', 'TurbineMap', 'Shaft']
 

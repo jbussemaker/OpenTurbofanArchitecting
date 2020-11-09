@@ -5,8 +5,8 @@ import openmdao.api as om
 import pycycle.api as pyc
 from ordered_set import OrderedSet
 from dataclasses import dataclass, field
-import open_turb_arch.architecture.units as units
-from open_turb_arch.architecture.architecture import *
+import open_turb_arch.evaluation.architecture.units as units
+from open_turb_arch.evaluation.architecture.architecture import *
 
 __all__ = ['CycleBuilder', 'ArchitectureCycle', 'ArchitectureMultiPointCycle', 'OperatingCondition', 'DesignCondition',
            'EvaluateCondition', 'OperatingMetrics', 'AnalysisProblem']
@@ -34,11 +34,11 @@ class OperatingCondition:
 
     def set_values(self, problem: om.Problem):
         problem.set_val(self.name+'.fc.MN', self.mach)
-        problem.set_val(self.name+'.fc.alt', self.alt, units=units.ALTITUDE)
-        problem.set_val(self.name+'.balance.Fn_target', self.thrust, units=units.FORCE)
+        problem.set_val(self.name +'.fc.alt', self.alt, units=units.ALTITUDE)
+        problem.set_val(self.name +'.balance.Fn_target', self.thrust, units=units.FORCE)
 
         if self.d_temp != 0:
-            problem.set_val(self.name+'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
+            problem.set_val(self.name +'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -56,7 +56,7 @@ class DesignCondition(OperatingCondition):
 
         if self.turbine_in_temp == 0.:
             raise ValueError('Must set a target turbine inlet temperature for the design condition')
-        problem.set_val(self.name+'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
+        problem.set_val(self.name +'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
 
     def _get_name(self) -> str:
         return 'design'
@@ -284,7 +284,7 @@ class ArchitectureCycle(pyc.Cycle):
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
             mass_flow=_float(problem.get_val('%s.%s.Fl_O:stat:W' % (self.name, self.inlet_el_name),
-                                      units=units.MASS_FLOW, get_remote=None)),
+                                             units=units.MASS_FLOW, get_remote=None)),
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),

@@ -1,6 +1,6 @@
 import pytest
-from open_turb_arch.analysis import *
-from open_turb_arch.architecture import *
+from open_turb_arch.evaluation.analysis import *
+from open_turb_arch.evaluation.architecture import *
 
 
 @pytest.fixture

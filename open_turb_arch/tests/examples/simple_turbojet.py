@@ -1,8 +1,8 @@
 """
 Simple turbojet example based on pycycle.example_cycles.simple_turbojet
 """
-from open_turb_arch.analysis import *
-from open_turb_arch.architecture import *
+from open_turb_arch.evaluation.analysis import *
+from open_turb_arch.evaluation.architecture import *
 
 inlet = Inlet(name='inlet', mach=.6, p_recovery=1)
 inlet.target = compressor = Compressor(name='comp', map=CompressorMap.AXI_5, mach=.02, pr=13.5, eff=.83)

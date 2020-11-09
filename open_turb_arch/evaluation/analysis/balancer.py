@@ -1,10 +1,10 @@
 import openmdao.api as om
 import pycycle.api as pyc
-from open_turb_arch.architecture.flow import *
-import open_turb_arch.architecture.units as units
-from open_turb_arch.architecture.turbomachinery import *
-from open_turb_arch.architecture import TurbofanArchitecture
-from open_turb_arch.analysis.builder import ArchitectureCycle, ArchitectureMultiPointCycle, Balancer
+from open_turb_arch.evaluation.architecture.flow import *
+import open_turb_arch.evaluation.architecture.units as units
+from open_turb_arch.evaluation.architecture.turbomachinery import *
+from open_turb_arch.evaluation.architecture import TurbofanArchitecture
+from open_turb_arch.evaluation.analysis.builder import ArchitectureCycle, ArchitectureMultiPointCycle, Balancer
 
 __all__ = ['Balancer', 'DesignBalancer', 'OffDesignBalancer']
 

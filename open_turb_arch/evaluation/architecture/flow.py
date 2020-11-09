@@ -2,7 +2,7 @@ from enum import Enum
 import openmdao.api as om
 import pycycle.api as pyc
 from dataclasses import dataclass
-from open_turb_arch.architecture.architecture import ArchElement
+from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
 __all__ = ['Inlet', 'Duct', 'Splitter', 'Bleed', 'Nozzle', 'NozzleType']
 
