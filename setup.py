@@ -1,4 +1,4 @@
-from adore import __version__
+from open_turb_arch import __version__
 from setuptools import setup, find_packages
 
 if __name__ == '__main__':
