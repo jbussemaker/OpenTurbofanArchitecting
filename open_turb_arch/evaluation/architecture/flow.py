@@ -74,13 +74,22 @@ class Splitter(ArchElement):
     bypass_mach: float = .3  # Reference Mach number for loss calculations
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        raise NotImplementedError
+        el = pyc.Splitter(design=design, thermo_data=thermo_data, elements=pyc.AIR_MIX)
+        cycle.pyc_add_element(self.name, el)
+
+        if design:
+            el.set_input_defaults('BPR', self.bpr)
+            el.set_input_defaults('MN1', self.core_mach)
+            el.set_input_defaults('MN2', self.bypass_mach)
+        return el
 
     def connect(self, cycle: pyc.Cycle):
-        raise NotImplementedError
+        self._connect_flow_target(cycle, self.target_core, out_flow='Fl_O1')
+        self._connect_flow_target(cycle, self.target_bypass, out_flow='Fl_O2')
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        raise NotImplementedError
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O1:stat:area', self.name+'.area1')
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O2:stat:area', self.name+'.area2')
 
 
 @dataclass(frozen=False)
@@ -110,9 +119,11 @@ class Nozzle(ArchElement):
     target: ArchElement = None  # This can be left to None to "connect" to the environment
     type: NozzleType = NozzleType.CV
     v_loss_coefficient: float = 1.  # Ratio of outgoing to incoming flow velocity
+    fuel_in_air: bool = True  # Whether the air mix contains fuel at the nozzle
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        el = pyc.Nozzle(nozzType=self.type.value, lossCoef='Cv', thermo_data=thermo_data, elements=pyc.AIR_FUEL_MIX)
+        elements = pyc.AIR_FUEL_MIX if self.fuel_in_air else pyc.AIR_MIX
+        el = pyc.Nozzle(nozzType=self.type.value, lossCoef='Cv', thermo_data=thermo_data, elements=elements)
         cycle.pyc_add_element(self.name, el)
         return el
 

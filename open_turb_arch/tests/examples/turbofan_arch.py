@@ -13,21 +13,12 @@ limitations under the License.
 
 Copyright: (c) 2020, Deutsches Zentrum fuer Luft- und Raumfahrt e.V.
 Contact: jasper.bussemaker@dlr.de
-
-Simple turbojet example based on pycycle.example_cycles.simple_turbojet
 """
 
+from open_turb_arch.architecting import *
+from open_turb_arch.architecting.metrics import *
+from open_turb_arch.architecting.turbofan import *
 from open_turb_arch.evaluation.analysis import *
-from open_turb_arch.evaluation.architecture import *
-
-inlet = Inlet(name='inlet', mach=.6, p_recovery=1)
-inlet.target = compressor = Compressor(name='comp', map=CompressorMap.AXI_5, mach=.02, pr=13.5, eff=.83)
-compressor.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
-burner.target = turbine = Turbine(name='turb', map=TurbineMap.LPT_2269, mach=.4, eff=.86)
-turbine.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
-shaft = Shaft(name='shaft', connections=[compressor, turbine], rpm_design=8070, power_loss=0.)
-
-architecture = TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft])
 
 design_condition = DesignCondition(
     mach=1e-6, alt=0,
@@ -51,14 +42,31 @@ analysis_problem = AnalysisProblem(design_condition=design_condition, evaluate_c
 design_condition.balancer = DesignBalancer(init_turbine_pr=4.)
 evaluate_conditions[0].balancer = evaluate_conditions[1].balancer = OffDesignBalancer(init_mass_flow=80.)
 
+architecting_problem = ArchitectingProblem(
+    analysis_problem=analysis_problem,
+    choices=[
+        FanChoice(fix_include_fan=None, fixed_bpr=None, fixed_fpr=None),
+    ],
+    objectives=[
+        TSFCMetric(),
+    ],
+    constraints=[
+        TSFCMetric(max_tsfc=.25, condition=evaluate_conditions[0]),
+    ],
+    metrics=[
+        TSFCMetric(condition=evaluate_conditions[1]),
+    ],
+)
+
 if __name__ == '__main__':
-    builder = CycleBuilder(architecture=architecture, problem=analysis_problem)
-    prob = builder.get_problem()
-    builder.view_n2(prob, show_browser=False)
+    design_vector = [0, 3., 1.5]
 
-    builder.run(prob)
-    builder.print_results(prob)
+    print('Design vector (input): %r' % design_vector)
+    architecture, _ = architecting_problem.generate_architecture(design_vector)
+    print(architecture)
 
-    print('\nOutput metrics:')
-    for condition, metrics in builder.get_metrics(prob).items():
-        print('%8s: %r' % (condition.name, metrics))
+    design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+    print('Design vector (output): %r' % design_vector)
+    print('Objectives: %r' % objectives)
+    print('Constraints: %r' % constraints)
+    print('Metrics: %r' % metrics)

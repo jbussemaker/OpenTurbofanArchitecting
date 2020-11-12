@@ -33,6 +33,9 @@ class ArchElement:
     def __hash__(self):
         return id(self)
 
+    def add_element_prepare(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
+        pass
+
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         """Add the element to the pyCycle cycle object, should also initialize set input defaults"""
         raise NotImplementedError
@@ -56,11 +59,17 @@ class ArchElement:
             cycle.pyc_connect_flow('%s.%s' % (self.name, out_flow), '%s.%s' % (target.name, in_flow))
 
 
+ArchElType = TypeVar('ArchElType', bound=ArchElement)
+
+
 @dataclass(frozen=False)
 class TurbofanArchitecture:
     """Describes an instance of a turbofan architecture."""
 
     elements: List[ArchElement] = field(default_factory=list)
+
+    def get_elements_by_type(self, typ: Type[ArchElType]) -> List[ArchElType]:
+        return [el for el in self.elements if isinstance(el, typ)]
 
     def __eq__(self, other):
         return hash(self) == hash(other)

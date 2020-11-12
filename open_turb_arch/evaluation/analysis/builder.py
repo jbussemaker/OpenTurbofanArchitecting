@@ -158,6 +158,8 @@ class ArchitectureCycle(pyc.Cycle):
 
         self._add_flight_conditions(thermo_data)
         for element in self.architecture.elements:
+            element.add_element_prepare(self, thermo_data, design)
+        for element in self.architecture.elements:
             element.add_element(self, thermo_data, design)
         self._add_performance()
 

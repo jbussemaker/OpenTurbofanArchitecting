@@ -54,6 +54,7 @@ class CompressorMap(Enum):
     AXI_5 = 'AXI5'
     LPC = 'LPCMap'
     HPC = 'HPCMap'
+    Fan = 'FanMap'
 
 
 @dataclass(frozen=False)
@@ -166,10 +167,16 @@ class Shaft(ArchElement):
     power_loss: float = 0.  # Fraction of power lost
 
     def __post_init__(self):
+        self._set_shaft_ref()
+
+    def _set_shaft_ref(self):
         for conn in self.connections:
-            if conn.shaft is not None:
+            if conn.shaft is not None and conn.shaft is not self:
                 raise ValueError('Shaft already set: %r' % conn)
             conn.shaft = self
+
+    def add_element_prepare(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
+        self._set_shaft_ref()
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         if self.connections is None or len(self.connections) < 2:
