@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
+from open_turb_arch.architecting.platypus import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.analysis.balancer import *
 from open_turb_arch.architecting.turbojet_architecture import *
@@ -290,3 +291,47 @@ def test_evaluate_architecture(an_problem):
     assert obj == [pytest.approx(22.6075, abs=1e-4)]
     assert con == [pytest.approx(22.6075, abs=1e-4)]
     assert met == [pytest.approx(22.6075, abs=1e-4)]
+
+
+def test_platypus_problem(an_problem):
+    from platypus.core import Solution
+    from platypus.types import Real, Integer
+    from platypus.operators import RandomGenerator
+
+    problem = ArchitectureProblemTester(
+        analysis_problem=an_problem,
+        choices=[DummyChoice()],
+        objectives=[DummyMetric()],
+        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
+        metrics=[DummyMetric()],
+    )
+
+    platypus_problem = problem.get_platypus_problem()
+    assert isinstance(platypus_problem, PlatypusArchitectingProblem)
+    assert platypus_problem.nvars == 2
+    assert platypus_problem.nobjs == 1
+    assert platypus_problem.nconstrs == 1
+
+    assert isinstance(platypus_problem.types[0], Real)
+    assert platypus_problem.types[0].min_value == 5.
+    assert platypus_problem.types[0].max_value == 20.
+
+    assert isinstance(platypus_problem.types[1], Integer)
+    assert platypus_problem.types[1].min_value == 0
+    assert platypus_problem.types[1].max_value == 2
+
+    assert platypus_problem.directions[0] == -1
+    assert platypus_problem.constraints[0].op == '<=0.05'
+
+    generator = RandomGenerator()
+    for _ in range(100):
+        sol: Solution = generator.generate(platypus_problem)
+        dv1 = sol.variables[0]
+        assert not sol.evaluated
+
+        platypus_problem(sol)
+        assert sol.evaluated
+        assert platypus_problem.types[1].decode(sol.variables[1]) == 0
+
+        assert sol.objectives[:] == [.10*dv1]
+        assert sol.constraints[:] == [.15*dv1]

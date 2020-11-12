@@ -107,6 +107,10 @@ class ArchitectingProblem:
         if len(self.opt_objectives) == 0:
             raise RuntimeError('No objectives to design for!')
 
+    def get_platypus_problem(self):
+        from open_turb_arch.architecting.platypus import PlatypusArchitectingProblem
+        return PlatypusArchitectingProblem(self)
+
     def get_random_design_vector(self) -> DesignVector:
         return [dv.encode(dv.get_random_value()) for dv in self.free_opt_des_vars]
 

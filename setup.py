@@ -42,6 +42,7 @@ if __name__ == '__main__':
             'openmdao>=3.2.0',
             'ordered_set',
             'numpy',
+            'Platypus-Opt',
         ],
         python_requires='>=3.6',
         packages=find_packages(),
