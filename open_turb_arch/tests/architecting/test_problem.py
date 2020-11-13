@@ -22,6 +22,7 @@ from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.architecting.platypus import *
+from open_turb_arch.architecting.openmdao import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.analysis.balancer import *
 from open_turb_arch.architecting.turbojet_architecture import *
@@ -335,3 +336,60 @@ def test_platypus_problem(an_problem):
 
         assert sol.objectives[:] == [.10*dv1]
         assert sol.constraints[:] == [.15*dv1]
+
+
+def test_openmdao_component(an_problem):
+    import openmdao.api as om
+
+    problem = ArchitectureProblemTester(
+        analysis_problem=an_problem,
+        choices=[DummyChoice()],
+        objectives=[DummyMetric()],
+        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
+        metrics=[DummyMetric()],
+    )
+
+    comp = problem.get_openmdao_component()
+    assert isinstance(comp, ArchitectingProblemComponent)
+    assert comp.des_var_names == [dv.name for dv in problem.free_opt_des_vars]
+    assert comp.obj_names == [obj.name for obj in problem.opt_objectives]
+    assert comp.con_names == [con.name for con in problem.opt_constraints]
+    assert comp.met_names == [met.name for met in problem.opt_metrics]
+
+    om_prob = om.Problem()
+    om_prob.driver = driver = om.SimpleGADriver()
+    driver.options['max_gen'] = 10
+    om_prob.model = comp
+    om_prob.setup()
+    om_prob.final_setup()
+
+    cont_x_names = [dv.name for dv in problem.free_opt_des_vars if isinstance(dv, ContinuousDesignVariable)]
+    dis_x_names = [dv.name for dv in problem.free_opt_des_vars if isinstance(dv, IntegerDesignVariable)]
+    assert len(cont_x_names) > 0
+    assert len(dis_x_names) > 0
+
+    assert {name for name in comp._outputs} == set(comp.obj_names+comp.con_names+comp.met_names+cont_x_names)
+    assert {name for name in comp._var_discrete['output']} == set(dis_x_names)
+    assert {name for name in comp.get_design_vars()} == set(comp.des_var_names)
+    assert {name for name in comp.get_objectives()} == set(comp.obj_names)
+    assert {name for name in comp.get_constraints()} == set(comp.con_names)
+
+    i_cont = [i for i, dv in enumerate(problem.free_opt_des_vars) if isinstance(dv, ContinuousDesignVariable)]
+    i_dis = [i for i in range(len(problem.free_opt_des_vars)) if i not in i_cont]
+
+    n_imputed = 0
+    for _ in range(100):
+        dv = problem.get_random_design_vector()
+        discrete_outputs = {name: dv[i] for i, name in enumerate(comp.des_var_names) if i in i_dis}
+        orig_discrete_outputs = discrete_outputs.copy()
+        outputs = {name: dv[i] for i, name in enumerate(comp.des_var_names) if i in i_cont}
+
+        comp.compute({}, outputs, discrete_outputs=discrete_outputs)
+        n_imputed += 1 if orig_discrete_outputs != discrete_outputs else 0
+
+        assert outputs[comp.obj_names[0]] == .10*dv[0]
+        assert outputs[comp.con_names[0]] == .15*dv[0]
+
+    assert n_imputed > 0
+
+    om_prob.run_driver()

@@ -111,6 +111,10 @@ class ArchitectingProblem:
         from open_turb_arch.architecting.platypus import PlatypusArchitectingProblem
         return PlatypusArchitectingProblem(self)
 
+    def get_openmdao_component(self):
+        from open_turb_arch.architecting.openmdao import ArchitectingProblemComponent
+        return ArchitectingProblemComponent(self)
+
     def get_random_design_vector(self) -> DesignVector:
         return [dv.encode(dv.get_random_value()) for dv in self.free_opt_des_vars]
 
