@@ -20,27 +20,26 @@ from open_turb_arch.architecting.metrics import *
 from open_turb_arch.architecting.turbofan import *
 from open_turb_arch.evaluation.analysis import *
 
-design_condition = DesignCondition(
-    mach=1e-6, alt=0,
-    thrust=52489,  # 11800 lbf
-    turbine_in_temp=1043.5,  # 2370 degR
+analysis_problem = AnalysisProblem(
+    design_condition=DesignCondition(
+        mach=1e-6, alt=0,
+        thrust=20017,  # 4500 lbf
+        turbine_in_temp=1314,  # 2857 degR
+        balancer=DesignBalancer(init_turbine_pr=8.36),
+    ),
+    evaluate_conditions=[
+        EvaluateCondition(
+            mach=1e-6, alt=35000,
+            thrust=10000,  # 4500 lbf
+            balancer=OffDesignBalancer(init_mass_flow=80.),
+        ),
+        EvaluateCondition(
+            mach=1e-6, alt=0,
+            thrust=15000,  # 4500 lbf
+            balancer=OffDesignBalancer(init_mass_flow=80.),
+        ),
+    ],
 )
-evaluate_conditions = [
-    EvaluateCondition(
-        name_='OD0',
-        mach=1e-5, alt=0,
-        thrust=48930.3,  # 11000 lbf
-    ),
-    EvaluateCondition(
-        name_='OD1',
-        mach=.2, alt=5000,  # ft
-        thrust=35585.8,  # 8000 lbf
-    ),
-]
-analysis_problem = AnalysisProblem(design_condition=design_condition, evaluate_conditions=evaluate_conditions)
-
-design_condition.balancer = DesignBalancer(init_turbine_pr=4.)
-evaluate_conditions[0].balancer = evaluate_conditions[1].balancer = OffDesignBalancer(init_mass_flow=80.)
 
 architecting_problem = ArchitectingProblem(
     analysis_problem=analysis_problem,
@@ -51,15 +50,15 @@ architecting_problem = ArchitectingProblem(
         TSFCMetric(),
     ],
     constraints=[
-        TSFCMetric(max_tsfc=.25, condition=evaluate_conditions[0]),
+        TSFCMetric(max_tsfc=.25, condition=analysis_problem.evaluate_conditions[0]),
     ],
     metrics=[
-        TSFCMetric(condition=evaluate_conditions[1]),
+        TSFCMetric(condition=analysis_problem.evaluate_conditions[1]),
     ],
 )
 
 if __name__ == '__main__':
-    design_vector = [0, 3., 1.5]
+    design_vector = [1, 3., 1.5]  # has_fan, bpr, fpr
 
     print('Design vector (input): %r' % design_vector)
     architecture, _ = architecting_problem.generate_architecture(design_vector)

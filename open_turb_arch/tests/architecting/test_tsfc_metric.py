@@ -86,3 +86,19 @@ def test_evaluate_architecture():
     assert obj == [pytest.approx(22.6075, abs=1e-4)]
     assert con == [pytest.approx(20.6793, abs=1e-4)]
     assert met == [pytest.approx(22.6075, abs=1e-4)]
+
+
+def test_openmdao_problem():
+    analysis_problem = AnalysisProblem(DesignCondition(
+        mach=1e-6, alt=0,
+        thrust=52489,  # 11800 lbf
+        turbine_in_temp=1043.5,  # 2370 degR
+        balancer=DesignBalancer(init_turbine_pr=3.88),
+    ))
+
+    problem = ArchitectingProblem(
+        analysis_problem=analysis_problem, choices=[CompressorPRChoice()],
+        objectives=[TSFCMetric()], constraints=[TSFCMetric()], metrics=[TSFCMetric()],
+    )
+
+    problem.get_openmdao_component()

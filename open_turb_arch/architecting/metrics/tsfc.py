@@ -32,13 +32,13 @@ class TSFCMetric(ArchitectingMetric):
     condition: OperatingCondition = None
 
     def get_opt_objectives(self, choices: List[ArchitectingChoice]) -> List[Objective]:
-        return [Objective('tsfc', ObjectiveDirection.MINIMIZE)]
+        return [Objective('tsfc_obj', ObjectiveDirection.MINIMIZE)]
 
     def get_opt_constraints(self, choices: List[ArchitectingChoice]) -> List[Constraint]:
-        return [Constraint('tsfc', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_tsfc)]
+        return [Constraint('tsfc_con', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_tsfc)]
 
     def get_opt_metrics(self, choices: List[ArchitectingChoice]) -> List[OutputMetric]:
-        return [OutputMetric('tsfc')]
+        return [OutputMetric('tsfc_met')]
 
     def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap) -> Sequence[float]:
         return [self._get_tsfc(analysis_problem, result)]
