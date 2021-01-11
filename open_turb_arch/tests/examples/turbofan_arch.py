@@ -29,14 +29,15 @@ analysis_problem = AnalysisProblem(
     ),
     evaluate_conditions=[
         EvaluateCondition(
-            mach=1e-6, alt=35000,
-            thrust=10000,  # 4500 lbf
-            balancer=OffDesignBalancer(init_mass_flow=80.),
-        ),
-        EvaluateCondition(
+            name_='OD0',
             mach=1e-6, alt=0,
-            thrust=15000,  # 4500 lbf
-            balancer=OffDesignBalancer(init_mass_flow=80.),
+            thrust=18000,
+            balancer=OffDesignBalancer(
+                init_mass_flow=60.,
+                init_bpr=3.,
+                init_shaft_rpm=8070.,
+                init_far=.02,
+            ),
         ),
     ],
 )
@@ -53,19 +54,21 @@ architecting_problem = ArchitectingProblem(
         TSFCMetric(max_tsfc=.25, condition=analysis_problem.evaluate_conditions[0]),
     ],
     metrics=[
-        TSFCMetric(condition=analysis_problem.evaluate_conditions[1]),
+        TSFCMetric(condition=analysis_problem.evaluate_conditions[0]),
     ],
 )
 
 if __name__ == '__main__':
-    design_vector = [1, 3., 1.5]  # has_fan, bpr, fpr
+    for has_fan in [0, 1]:
+        has_fan_status = 'turbofan' if has_fan else 'turbojet'
+        design_vector = [has_fan, 5., 1.5]  # has_fan, bpr, fpr
 
-    print('Design vector (input): %r' % design_vector)
-    architecture, _ = architecting_problem.generate_architecture(design_vector)
-    print(architecture)
+        print('Design vector %s (input): %r' % (has_fan_status, design_vector))
+        architecture, _ = architecting_problem.generate_architecture(design_vector)
+        print(architecture)
 
-    design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
-    print('Design vector (output): %r' % design_vector)
-    print('Objectives: %r' % objectives)
-    print('Constraints: %r' % constraints)
-    print('Metrics: %r' % metrics)
+        design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+        print('Design vector %s (output): %r' % (has_fan_status, design_vector))
+        print('Objectives %s: %r' % (has_fan_status, objectives))
+        print('Constraints %s: %r' % (has_fan_status, constraints))
+        print('Metrics %s: %r' % (has_fan_status, metrics))

@@ -130,3 +130,39 @@ def test_simple_turbofan(simple_turbofan_arch: TurbofanArchitecture):
     assert met.thrust == pytest.approx(20017., abs=.1)
     assert met.tsfc == pytest.approx(11.8247, abs=1e-4)
     assert met.opr == pytest.approx(20.25)
+
+
+def test_simple_turbofan_off_design(simple_turbofan_arch: TurbofanArchitecture):
+    design_condition = DesignCondition(
+        mach=1e-6, alt=0,
+        thrust=20017,  # 4500 lbf
+        turbine_in_temp=1314,  # 2857 degR
+        balancer=DesignBalancer(init_turbine_pr=8.36),
+    )
+    evaluate_condition = EvaluateCondition(
+        name_='OD0',
+        mach=1e-6, alt=0,
+        thrust=18000,
+        balancer=OffDesignBalancer(
+            init_mass_flow=60.,
+            init_bpr=3.,
+            init_shaft_rpm=8070.,
+            init_far=.02,
+        ),
+    )
+    analysis_problem = AnalysisProblem(design_condition=design_condition, evaluate_conditions=[evaluate_condition])
+
+    b = CycleBuilder(architecture=simple_turbofan_arch, problem=analysis_problem)
+    prob = b.get_problem()
+
+    b.run(prob)
+    b.print_results(prob)
+
+    metrics = b.get_metrics(prob)
+    assert evaluate_condition in metrics
+    met = metrics[evaluate_condition]
+    assert met.fuel_flow == pytest.approx(.2032, abs=1e-2)
+    assert met.mass_flow == pytest.approx(56.748, abs=1e-3)
+    assert met.thrust == pytest.approx(18000., abs=.1)
+    assert met.tsfc == pytest.approx(11.2884, abs=1e-3)
+    assert met.opr == pytest.approx(18.51, abs=.1)

@@ -127,6 +127,10 @@ class OffDesignBalancer(Balancer):
         self._balance_areas(cycle, balance, architecture)
         self._balance_shaft_power(cycle, balance, architecture)
 
+        # Execute balancer before all other elements
+        names = [el.name for el in cycle.pyc_elements]
+        cycle.set_order([self.balance_name]+names)
+
     def connect_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         self._connect_balance_des_od(mp_cycle, architecture)
 
