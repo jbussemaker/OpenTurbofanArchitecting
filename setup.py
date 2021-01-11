@@ -19,6 +19,10 @@ from open_turb_arch import __version__
 from setuptools import setup, find_packages
 
 if __name__ == '__main__':
+    # Linking to a custom repository unfortunately only works when installing using pip
+    if 'pip' not in __file__:  # https://stackoverflow.com/a/10386262
+        raise RuntimeError('Install using pip: pip install .')
+
     setup(
         name='open_turb_arch',
         version=__version__,
@@ -38,7 +42,7 @@ if __name__ == '__main__':
         install_requires=[
             'pytest',
             'dataclasses',
-            'pycycle @ git+https://github.com/OpenMDAO/pyCycle@3.2.0#egg=pycycle',
+            'pycycle @ git+https://github.com/OpenMDAO/pyCycle.git@3.2.0#egg=pycycle',
             'openmdao>=3.2.0',
             'ordered_set',
             'numpy',
