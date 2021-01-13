@@ -27,19 +27,19 @@ analysis_problem = AnalysisProblem(
         turbine_in_temp=1314,  # 2857 degR
         balancer=DesignBalancer(init_turbine_pr=8.36),
     ),
-    evaluate_conditions=[
-        EvaluateCondition(
-            name_='OD0',
-            mach=1e-6, alt=0,
-            thrust=18000,
-            balancer=OffDesignBalancer(
-                init_mass_flow=60.,
-                init_bpr=3.,
-                init_shaft_rpm=8070.,
-                init_far=.02,
-            ),
-        ),
-    ],
+    # evaluate_conditions=[
+    #     EvaluateCondition(
+    #         name_='OD0',
+    #         mach=1e-6, alt=0,
+    #         thrust=18000,
+    #         balancer=OffDesignBalancer(
+    #             init_mass_flow=60.,
+    #             init_bpr=3.,
+    #             init_shaft_rpm=8070.,
+    #             init_far=.02,
+    #         ),
+    #     ),
+    # ],
 )
 
 architecting_problem = ArchitectingProblem(
@@ -51,10 +51,10 @@ architecting_problem = ArchitectingProblem(
         TSFCMetric(),
     ],
     constraints=[
-        TSFCMetric(max_tsfc=.25, condition=analysis_problem.evaluate_conditions[0]),
+        TSFCMetric(max_tsfc=.25),
     ],
     metrics=[
-        TSFCMetric(condition=analysis_problem.evaluate_conditions[0]),
+        TSFCMetric(),
     ],
 )
 
