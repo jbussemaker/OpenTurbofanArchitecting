@@ -172,7 +172,7 @@ class ArchitectureCycle(pyc.Cycle):
         self._set_solvers()
 
     def _add_flight_conditions(self, thermo_data):
-        self.pyc_add_element('fc', pyc.FlightConditions(thermo_data=thermo_data, elements=pyc.AIR_MIX))
+        self.pyc_add_element('fc', pyc.FlightConditions(thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS))
 
     def _add_performance(self):
         n_nozzles = 0

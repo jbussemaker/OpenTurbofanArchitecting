@@ -70,7 +70,7 @@ class Compressor(BaseTurboMachinery):
             raise ValueError('Not connected to shaft: %r' % self)
 
         map_data = getattr(pyc, self.map.value)
-        el = pyc.Compressor(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_MIX)
+        el = pyc.Compressor(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS)
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('Nmech', self.shaft.name+'_Nmech')])
 
         if design:
@@ -104,8 +104,8 @@ class Burner(ArchElement):
     p_loss_frac: float = 0.  # Pressure loss as fraction of incoming pressure (dPqP)
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        el = pyc.Combustor(design=design, thermo_data=thermo_data, inflow_elements=pyc.AIR_MIX,
-                           air_fuel_elements=pyc.AIR_FUEL_MIX, fuel_type=self.fuel.value)
+        el = pyc.Combustor(design=design, thermo_data=thermo_data, inflow_elements=pyc.AIR_ELEMENTS,
+                           air_fuel_elements=pyc.AIR_FUEL_ELEMENTS, fuel_type=self.fuel.value)
         cycle.pyc_add_element(self.name, el)
 
         if design:
@@ -140,7 +140,7 @@ class Turbine(BaseTurboMachinery):
             raise ValueError('Not connected to shaft: %r' % self)
 
         map_data = getattr(pyc, self.map.value)
-        el = pyc.Turbine(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_FUEL_MIX)
+        el = pyc.Turbine(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_FUEL_ELEMENTS)
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('Nmech', self.shaft.name+'_Nmech')])
 
         if design:

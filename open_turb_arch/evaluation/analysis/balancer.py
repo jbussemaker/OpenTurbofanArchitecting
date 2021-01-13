@@ -110,10 +110,10 @@ class OffDesignBalancer(Balancer):
 
     def __init__(
             self,
-            init_mass_flow = 90.,  # kg/s
-            init_bpr = 5.,
-            init_far = .017,
-            init_shaft_rpm = 5000.,  # rpm
+            init_mass_flow: float = 90.,  # kg/s
+            init_bpr: float = 5.,
+            init_far: float = .017,
+            init_shaft_rpm: float = 5000.,  # rpm
     ):
         self._init_mass_flow = init_mass_flow
         self._init_bpr = init_bpr

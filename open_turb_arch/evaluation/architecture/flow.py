@@ -31,7 +31,7 @@ class Inlet(ArchElement):
     p_recovery: float = 1.  # Fraction of the recovered total pressure (ram recovery)
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        el = pyc.Inlet(design=design, thermo_data=thermo_data, elements=pyc.AIR_MIX)
+        el = pyc.Inlet(design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS)
         cycle.pyc_add_element(self.name, el)
 
         if design:
@@ -74,7 +74,7 @@ class Splitter(ArchElement):
     bypass_mach: float = .3  # Reference Mach number for loss calculations
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        el = pyc.Splitter(design=design, thermo_data=thermo_data, elements=pyc.AIR_MIX)
+        el = pyc.Splitter(design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS)
         cycle.pyc_add_element(self.name, el)
 
         if design:
@@ -122,7 +122,7 @@ class Nozzle(ArchElement):
     fuel_in_air: bool = True  # Whether the air mix contains fuel at the nozzle
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        elements = pyc.AIR_FUEL_MIX if self.fuel_in_air else pyc.AIR_MIX
+        elements = pyc.AIR_FUEL_ELEMENTS if self.fuel_in_air else pyc.AIR_ELEMENTS
         el = pyc.Nozzle(nozzType=self.type.value, lossCoef='Cv', thermo_data=thermo_data, elements=elements)
         cycle.pyc_add_element(self.name, el)
         return el
