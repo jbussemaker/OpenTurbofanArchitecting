@@ -34,4 +34,8 @@ def get_turbojet_architecture() -> TurbofanArchitecture:
         rpm_design=8070, power_loss=0.,
     )
 
-    return TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft])
+    bleed = Bleed(
+        name='bleed', case='intra', bleed_names=['bld'], connections=['lpc', 'lpt']
+    )
+
+    return TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft, bleed])

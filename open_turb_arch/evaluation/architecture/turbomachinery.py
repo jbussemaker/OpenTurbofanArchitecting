@@ -19,7 +19,7 @@ from typing import *
 from enum import Enum
 import openmdao.api as om
 import pycycle.api as pyc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import open_turb_arch.evaluation.architecture.units as units
 from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
@@ -64,13 +64,14 @@ class Compressor(BaseTurboMachinery):
     mach: float = .01  # Reference Mach number for loss calculations
     pr: float = 5.  # Compression pressure ratio
     eff: float = 1.  # Enthalpy rise efficiency (<1 is less efficient)
+    bleed_names: List[str] = field(default_factory=lambda: [])
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         if self.shaft is None:
             raise ValueError('Not connected to shaft: %r' % self)
 
         map_data = getattr(pyc, self.map.value)
-        el = pyc.Compressor(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS)
+        el = pyc.Compressor(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS, bleed_names=self.bleed_names)
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('Nmech', self.shaft.name+'_Nmech')])
 
         if design:
@@ -134,13 +135,14 @@ class Turbine(BaseTurboMachinery):
     map: TurbineMap = TurbineMap.LPT_2269
     mach: float = .4  # Reference Mach number for loss calculations
     eff: float = 1.  # Enthalpy rise efficiency (<1 is less efficient)
+    bleed_names: List[str] = field(default_factory=lambda: [])
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         if self.shaft is None:
             raise ValueError('Not connected to shaft: %r' % self)
 
         map_data = getattr(pyc, self.map.value)
-        el = pyc.Turbine(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_FUEL_ELEMENTS)
+        el = pyc.Turbine(map_data=map_data, design=design, thermo_data=thermo_data, elements=pyc.AIR_FUEL_ELEMENTS, bleed_names=self.bleed_names)
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('Nmech', self.shaft.name+'_Nmech')])
 
         if design:

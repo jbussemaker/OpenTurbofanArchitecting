@@ -17,8 +17,9 @@ Contact: jasper.bussemaker@dlr.de
 
 from enum import Enum
 import openmdao.api as om
+from typing import *
 import pycycle.api as pyc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
 __all__ = ['Inlet', 'Duct', 'Splitter', 'Bleed', 'Nozzle', 'NozzleType']
@@ -54,15 +55,20 @@ class Duct(ArchElement):
     target: ArchElement = None
     mach: float = .3  # Reference Mach number for loss calculations
     p_loss_frac: float = 0.  # Pressure loss as fraction of incoming pressure (dPqP)
+    fuel_in_air: bool = False
+    statics: bool = True
+    design: bool = True
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        raise NotImplementedError
+        elements = pyc.AIR_FUEL_ELEMENTS if self.fuel_in_air else pyc.AIR_ELEMENTS
+        el = pyc.Duct(thermo_data=thermo_data, elements=elements, statics=self.statics, design=design)
+        cycle.pyc_add_element(self.name, el)
 
     def connect(self, cycle: pyc.Cycle):
-        raise NotImplementedError
+        self._connect_flow_target(cycle, self.target)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        raise NotImplementedError
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
 
 
 @dataclass(frozen=False)
@@ -94,18 +100,53 @@ class Splitter(ArchElement):
 
 @dataclass(frozen=False)
 class Bleed(ArchElement):
+    case: str = None     # inter = between components, intra = in 1 component
     target: ArchElement = None
+    target_bleed: str = None
     mach: float = .3  # Reference Mach number for loss calculations
-    mass_flow: float = 0.  # Bleed air mass flow [kg/s]
+    source_frac_W: float = 0.05
+    source_frac_P: float = 1.0
+    source_frac_work: float = 1.0
+    target_frac_P: float = 1.0
+    fuel_in_air: bool = False
+    statics: bool = True
+    design: bool = True
+    bleed_names: List[str] = field(default_factory=lambda: [])
+    connections: List[str] = field(default_factory=lambda: [])
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        raise NotImplementedError
+        if self.case == 'inter':
+            elements = pyc.AIR_FUEL_ELEMENTS if self.fuel_in_air else pyc.AIR_ELEMENTS
+            el = pyc.BleedOut(thermo_data=thermo_data, elements=elements, statics=self.statics, design=design, bleed_names=self.bleed_names)
+            cycle.pyc_add_element(self.name, el)
+        else:
+            pass
 
     def connect(self, cycle: pyc.Cycle):
-        raise NotImplementedError
+        if self.case == 'inter':
+            self._connect_flow_target(cycle, self.target)
+            for i in self.bleed_names:
+                cycle.pyc_connect_flow('%s.%s' % (self.name, i), '%s.%s' % (self.target_bleed, i), connect_stat=False)
+        elif self.case == 'intra':
+            for i in self.bleed_names:
+                cycle.pyc_connect_flow('%s.%s' % (self.connections[0], i), '%s.%s' % (self.connections[1], i), connect_stat=False)
+
+    def add_cycle_params(self, mp_cycle: pyc.MPCycle):
+        if self.case == 'inter':
+            for i in self.bleed_names:
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, i) + ':frac_W', self.source_frac_W)
+                # mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, i)+':frac_P', self.source_frac_P)
+                # mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, i)+':frac_work', self.source_frac_work)
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target_bleed, i) + ':frac_P', self.target_frac_P)
+        elif self.case == 'intra':
+            for i in self.bleed_names:
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.connections[0], i) + ':frac_W', self.source_frac_W)          # bleed mass flow fraction (W_bld/W_in)
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.connections[0], i) + ':frac_P', self.source_frac_P)          # bleed pressure fraction ((P_bld-P_in)/(P_out-P_in))
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.connections[0], i) + ':frac_work', self.source_frac_work)       # bleed work fraction ((h_bld-h_in)/(h_out-h_in))
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.connections[1], i) + ':frac_P', self.target_frac_P)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        raise NotImplementedError
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
 
 
 class NozzleType(Enum):

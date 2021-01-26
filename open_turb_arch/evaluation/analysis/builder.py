@@ -262,6 +262,7 @@ class ArchitectureCycle(pyc.Cycle):
 
         pyc.print_shaft(problem, self.get_element_names(pyc.Shaft), file=fp)
 
+        pyc.print_bleed(problem, self.get_element_names(pyc.Compressor), file=fp)
         bleed_names = self.get_element_names(pyc.BleedOut)
         if len(bleed_names) > 0:
             pyc.print_bleed(problem, bleed_names, file=fp)

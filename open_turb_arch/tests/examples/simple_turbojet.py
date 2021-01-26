@@ -21,13 +21,19 @@ from open_turb_arch.evaluation.analysis import *
 from open_turb_arch.evaluation.architecture import *
 
 inlet = Inlet(name='inlet', mach=.6, p_recovery=1)
-inlet.target = compressor = Compressor(name='comp', map=CompressorMap.AXI_5, mach=.02, pr=13.5, eff=.83)
-compressor.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
-burner.target = turbine = Turbine(name='turb', map=TurbineMap.LPT_2269, mach=.4, eff=.86)
-turbine.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
-shaft = Shaft(name='shaft', connections=[compressor, turbine], rpm_design=8070, power_loss=0.)
+inlet.target = lpc = Compressor(name='lpc', map=CompressorMap.LPC, mach=.02, pr=1.935, eff=.83)
+lpc.target = duct = Duct(name='duct', mach=.02, p_loss_frac=0.)
+duct.target = hpc = Compressor(name='hpc', map=CompressorMap.HPC, mach=.02, pr=4.9, eff=.83)
+hpc.target = bleed = Bleed(name='bleed', case='inter', target_bleed='hpt', bleed_names=['cool3'], connections=['lpc','lpt'])
+bleed.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
+burner.target = hpt = Turbine(name='hpt', map=TurbineMap.HPT, mach=.4, eff=.86, bleed_names=['cool3'])
+hpt.target = lpt = Turbine(name='lpt', map=TurbineMap.LPT, mach=.4, eff=.86)
+lpt.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
+shaft_hp = Shaft(name='shaft_hp', connections=[hpc, hpt], rpm_design=8070, power_loss=0.)
+shaft_lp = Shaft(name='shaft_lp', connections=[lpc, lpt], rpm_design=8070, power_loss=0.)
+# bleed = Bleed(name='bleed', case='intra', target_bleed='hpt', bleed_names=['cool3'], connections=['lpc','lpt'])
 
-architecture = TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft])
+architecture = TurbofanArchitecture(elements=[inlet, lpc, duct, hpc, burner, hpt, lpt, nozzle, shaft_lp, shaft_hp, bleed])
 
 design_condition = DesignCondition(
     mach=1e-6, alt=0,
@@ -35,21 +41,21 @@ design_condition = DesignCondition(
     turbine_in_temp=1043.5,  # 2370 degR
 )
 evaluate_conditions = [
-    EvaluateCondition(
-        name_='OD0',
-        mach=1e-5, alt=0,
-        thrust=48930.3,  # 11000 lbf
-    ),
-    EvaluateCondition(
-        name_='OD1',
-        mach=.2, alt=5000,  # ft
-        thrust=35585.8,  # 8000 lbf
-    ),
+    # EvaluateCondition(
+    #     name_='OD0',
+    #     mach=1e-5, alt=0,
+    #     thrust=48930.3,  # 11000 lbf
+    # ),
+    # EvaluateCondition(
+    #     name_='OD1',
+    #     mach=.2, alt=5000,  # ft
+    #     thrust=35585.8,  # 8000 lbf
+    # ),
 ]
 analysis_problem = AnalysisProblem(design_condition=design_condition, evaluate_conditions=evaluate_conditions)
 
 design_condition.balancer = DesignBalancer(init_turbine_pr=4.)
-evaluate_conditions[0].balancer = evaluate_conditions[1].balancer = OffDesignBalancer(init_mass_flow=80.)
+# evaluate_conditions[0].balancer = evaluate_conditions[1].balancer = OffDesignBalancer(init_mass_flow=80.)
 
 if __name__ == '__main__':
     builder = CycleBuilder(architecture=architecture, problem=analysis_problem)

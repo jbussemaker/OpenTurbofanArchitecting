@@ -36,7 +36,7 @@ class ArchitectingProblem:
                  metrics: List[ArchitectingMetric] = None):
 
         self._an_problem = analysis_problem
-        self.print_results = False
+        self.print_results = True
 
         self._choices = sorted(choices, key=lambda choice: choice.get_construction_order())
         self._objectives = objectives
