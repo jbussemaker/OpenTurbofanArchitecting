@@ -28,7 +28,7 @@ __all__ = ['ShaftChoice']
 class ShaftChoice(ArchitectingChoice):
     """Represents the choices of how many shafts to use in the engine."""
 
-    fixed_add_shafts: int = None  # Fix the number of shafts
+    fixed_add_shafts: int = None  # Fix the number of added shafts
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
@@ -57,39 +57,44 @@ class ShaftChoice(ArchitectingChoice):
 
         # Find necessary elements
         inlet = architecture.get_elements_by_type(Inlet)[0]
-        compressor = architecture.get_elements_by_type(Compressor)[number]
+        compressor = architecture.get_elements_by_type(Compressor)[0]
         turbine = architecture.get_elements_by_type(Turbine)[number]
         nozzle = architecture.get_elements_by_type(Nozzle)[0]
+        shaft = architecture.get_elements_by_type(Shaft)[number]
 
+        # Define names for added shafts
         if number == 0:
             shaft_name = 'ip'
         elif number == 1:
             shaft_name = 'lp'
         else:
-            raise RuntimeError('Unexpected number of shafts %s')
+            raise RuntimeError('Unexpected number of shafts %s' % number)
 
-        # Create new element: compressor and turbine
-        comp = Compressor(
+        # Create new elements: compressor, turbine and shaft
+        comp_new = Compressor(
             name='comp_'+shaft_name, map=CompressorMap.AXI_5,
             mach=.4578, pr=5, eff=.89,
         )
 
-        turb = Turbine(
+        turb_new = Turbine(
             name='turb_'+shaft_name, map=TurbineMap.LPT_2269,
             mach=.4578, eff=.89,
         )
 
-        shaft = Shaft(
-            name='shaft_'+shaft_name, connections=[comp, turb],
+        shaft_new = Shaft(
+            name='shaft_'+shaft_name, connections=[comp_new, turb_new],
             rpm_design=8070, power_loss=0.,
         )
 
-        architecture.elements += [comp, turb, shaft]
+        # Insert compressor, turbine and shaft into architecture elements list
+        architecture.elements.insert(architecture.elements.index(compressor), comp_new)
+        architecture.elements.insert(architecture.elements.index(turbine)+1, turb_new)
+        architecture.elements.insert(architecture.elements.index(shaft)+1, shaft_new)
 
         # Reroute flow from inlet
-        inlet.target = comp
-        comp.target = compressor
+        inlet.target = comp_new
+        comp_new.target = compressor
 
         # Reroute flow to nozzle
-        turbine.target = turb
-        turb.target = nozzle
+        turbine.target = turb_new
+        turb_new.target = nozzle
