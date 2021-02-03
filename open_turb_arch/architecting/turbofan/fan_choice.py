@@ -68,7 +68,7 @@ class FanChoice(ArchitectingChoice):
     @staticmethod
     def _include_fan(architecture: TurbofanArchitecture, bpr: float, fpr: float):
 
-        # Create new elements: the fan and the bypass flow
+        # Create new elements: the fan, splitter and bypass flow
         fan = Compressor(
             name='fan', map=CompressorMap.AXI_5,
             mach=.4578, pr=fpr, eff=.89,
@@ -84,6 +84,7 @@ class FanChoice(ArchitectingChoice):
             v_loss_coefficient=.99, fuel_in_air=False,
         )
 
+        # Insert fan, splitter and bypass flow into architecture elements list
         architecture.elements.insert(1, fan)
         architecture.elements.insert(2, splitter)
         architecture.elements.insert(3, bypass_nozzle)
