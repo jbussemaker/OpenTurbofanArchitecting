@@ -21,19 +21,20 @@ from open_turb_arch.evaluation.analysis import *
 from open_turb_arch.evaluation.architecture import *
 
 inlet = Inlet(name='inlet', mach=.6, p_recovery=1)
-inlet.target = lpc = Compressor(name='lpc', map=CompressorMap.LPC, mach=.02, pr=1.935, eff=.83)
+inlet.target = lpc = Compressor(name='lpc', map=CompressorMap.LPC, mach=.02, pr=1.935, eff=.83, bleed_names=['cool1','cool2'])
 lpc.target = duct = Duct(name='duct', mach=.02, p_loss_frac=0.)
 duct.target = hpc = Compressor(name='hpc', map=CompressorMap.HPC, mach=.02, pr=4.9, eff=.83)
-hpc.target = bleed = Bleed(name='bleed', case='inter', target_bleed='hpt', bleed_names=['cool3'], connections=['lpc','lpt'])
-bleed.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
+hpc.target = bleed_inter = BleedInter(name='bleed_inter', target_bleed='hpt', bleed_names=['cool3'])
+bleed_inter.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
 burner.target = hpt = Turbine(name='hpt', map=TurbineMap.HPT, mach=.4, eff=.86, bleed_names=['cool3'])
-hpt.target = lpt = Turbine(name='lpt', map=TurbineMap.LPT, mach=.4, eff=.86)
+hpt.target = lpt = Turbine(name='lpt', map=TurbineMap.LPT, mach=.4, eff=.86, bleed_names=['cool1','cool2'])
 lpt.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
-shaft_hp = Shaft(name='shaft_hp', connections=[hpc, hpt], rpm_design=8070, power_loss=0.)
 shaft_lp = Shaft(name='shaft_lp', connections=[lpc, lpt], rpm_design=8070, power_loss=0.)
-# bleed = Bleed(name='bleed', case='intra', target_bleed='hpt', bleed_names=['cool3'], connections=['lpc','lpt'])
+shaft_hp = Shaft(name='shaft_hp', connections=[hpc, hpt], rpm_design=8070, power_loss=0.)
+bleed_intra = BleedIntra(name='bleed_intra', source=lpc, target=lpt, bleed_names=['cool1','cool2'])
+# gearbox = Gearbox(name='gearbox', connections=[shaft_lp, shaft_hp], rpm_in=8070., rpm_out=9000.)
 
-architecture = TurbofanArchitecture(elements=[inlet, lpc, duct, hpc, burner, hpt, lpt, nozzle, shaft_lp, shaft_hp, bleed])
+architecture = TurbofanArchitecture(elements=[inlet, lpc, duct, hpc, burner, hpt, lpt, nozzle, shaft_lp, shaft_hp, bleed_inter, bleed_intra])
 
 design_condition = DesignCondition(
     mach=1e-6, alt=0,

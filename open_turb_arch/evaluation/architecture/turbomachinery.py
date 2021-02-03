@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 import open_turb_arch.evaluation.architecture.units as units
 from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
-__all__= ['Compressor', 'CompressorMap', 'Burner', 'FuelType', 'Turbine', 'TurbineMap', 'Shaft']
+__all__ = ['Compressor', 'CompressorMap', 'Burner', 'FuelType', 'Turbine', 'TurbineMap', 'Shaft', 'GearOption', 'Gearbox']
 
 
 @dataclass(frozen=False)
@@ -162,6 +162,11 @@ class Turbine(BaseTurboMachinery):
         problem.set_val('%s.%s.eff' % (des_con_name, self.name), self.eff)
 
 
+class GearOption(Enum):
+    Gear = 'Gear'
+    NoGear = 'NoGear'
+
+
 @dataclass(frozen=False)
 class Shaft(ArchElement):
     connections: List[BaseTurboMachinery] = None
@@ -169,7 +174,16 @@ class Shaft(ArchElement):
     power_loss: float = 0.  # Fraction of power lost
 
     def __post_init__(self):
+        self.__gearbox = None
         self._set_shaft_ref()
+
+    @property
+    def gearbox(self):
+        return self.__gearbox
+
+    @gearbox.setter
+    def gearbox(self, gearbox):
+        self.__gearbox = gearbox
 
     def _set_shaft_ref(self):
         for conn in self.connections:
@@ -181,11 +195,16 @@ class Shaft(ArchElement):
         self._set_shaft_ref()
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        if self.connections is None or len(self.connections) < 2:
-            raise ValueError('Shaft should at least connect two turbomachinery elements!')
+        # if self.connections is None or len(self.connections) < 2:
+        #     raise ValueError('Shaft should at least connect two turbomachinery elements!')
+        if self.gearbox is not None:
+            if self.gearbox is None:
+                raise ValueError('Not connected to gearbox: %r' % self)
 
         el = pyc.Shaft(num_ports=len(self.connections))
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('Nmech', self.name+'_Nmech')])
+        #if self.geared == GearOption.Gear:
+        #    cycle.pyc_add_element(self.name, el, promotes_inputs=[('N_in', self.gearbox.connections[0].name+'_Nmech'), ('N_out', self.gearbox.connections[1].name+'_Nmech')])
 
         if design:
             cycle.set_input_defaults(self.name +'_Nmech', self.rpm_design, units=units.RPM)
@@ -200,3 +219,44 @@ class Shaft(ArchElement):
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         pass
+
+
+@dataclass(frozen=False)
+class Gearbox(ArchElement):
+    connections: List[Shaft] = None     # Conn_0: LP_shaft, Conn_1: Fan
+    rpm_in: float = 10000.
+    rpm_out: float = 5000.
+
+    def __post_init__(self):
+        self._set_gearbox_ref()
+
+    def _set_gearbox_ref(self):
+        for conn in self.connections:
+            if conn.gearbox is not None and conn.gearbox is not self:
+                raise ValueError('Gearbox already set: %r' % conn)
+            conn.gearbox = self
+
+    def add_element_prepare(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
+        self._set_gearbox_ref()
+
+    def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
+        # if self.gearbox is None:
+        #     raise ValueError('Not connected to gearbox: %r' % self)
+
+        if self.connections is None or len(self.connections) != 2:
+            raise ValueError('Gearbox should connect exactly two shafts!')
+
+        el = pyc.Gearbox()
+        cycle.pyc_add_element(self.name, el, promotes_inputs=[('N_in', self.connections[0].name+'_Nmech'), ('N_out', self.connections[1].name+'_Nmech')])
+
+        if design:
+            cycle.set_input_defaults(self.connections[0].name+'_Nmech', self.rpm_in, units=units.RPM)
+            cycle.set_input_defaults(self.connections[1].name+'_Nmech', self.rpm_out, units=units.RPM)
+        return el
+
+    def connect(self, cycle: pyc.Cycle):
+        cycle.connect(self.name+'.trq_in', '%s.trq_%d' % (self.connections[0].name, 0))   # LP shaft
+        cycle.connect(self.name+'.trq_out', '%s.trq_%d' % (self.connections[1].name, 1))    # Fan
+
+    def connect_des_od(self, mp_cycle: pyc.MPCycle):
+        mp_cycle.pyc_connect_des_od(self.name+'.gear_ratio', self.name+'.gear_ratio')

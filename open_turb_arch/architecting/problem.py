@@ -193,6 +193,7 @@ class ArchitectingProblem:
         builder.run(openmdao_problem)
         if self.print_results:
             builder.print_results(openmdao_problem)
+        builder.view_n2(openmdao_problem, show_browser=True)
         return builder.get_metrics(openmdao_problem)
 
     def extract_metrics(self, results: OperatingMetricsMap) -> Tuple[List[float], List[float], List[float]]:

@@ -21,13 +21,13 @@ from open_turb_arch.architecting.choice import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
-__all__ = ['FanChoice']
+__all__ = ['FanMixingChoice']
 
 
 @dataclass(frozen=False)
-class FanChoice(ArchitectingChoice):
+class FanMixingChoice(ArchitectingChoice):
     """Represents the choices of whether to include a fan or not and which bypass ratio and fan pressure ratio to use
-    if yes."""
+    if yes. Next to that, the choice for a separate or mixed nozzle can be made as well."""
 
     fix_include_fan: bool = None  # Set to True of False to fix the choice of whether to include a fan or not
 
@@ -36,6 +36,8 @@ class FanChoice(ArchitectingChoice):
 
     fixed_fpr: float = None  # Fix the fan pressure ratio
     fpr_bounds: Tuple[float, float] = (1.1, 1.8)
+
+    fix_include_mixing: bool = None  # Set to True of False to fix the choice of whether to use a mixed or separate nozzle
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
@@ -48,6 +50,10 @@ class FanChoice(ArchitectingChoice):
 
             ContinuousDesignVariable(
                 'fpr', bounds=self.fpr_bounds, fixed_value=self.fixed_fpr),
+            
+            IntegerDesignVariable(
+                'include_mixing', type=IntDesignVariableType.CATEGORICAL, values=[False, True],
+                fixed_value=self.fix_include_mixing),
         ]
 
     def get_construction_order(self) -> int:
@@ -57,16 +63,15 @@ class FanChoice(ArchitectingChoice):
             -> Sequence[bool]:
 
         # The BPR and FPR design variables are only active if a fan is included
-        include_fan, bpr, fpr = design_vector
-        is_active = [True, include_fan, include_fan]
+        include_fan, bpr, fpr, include_mixing = design_vector
+        is_active = [True, include_fan, include_fan, include_fan]
 
         if include_fan:
-            self._include_fan(architecture, bpr, fpr)
+            self._include_fan(architecture, bpr, fpr, include_mixing=include_mixing)
 
         return is_active
 
-    @staticmethod
-    def _include_fan(architecture: TurbofanArchitecture, bpr: float, fpr: float):
+    def _include_fan(self, architecture: TurbofanArchitecture, bpr: float, fpr: float, include_mixing: bool):
 
         # Create new elements: the fan and the bypass flow
         fan = Compressor(
@@ -95,5 +100,32 @@ class FanChoice(ArchitectingChoice):
         splitter.target_core = compressor
 
         # Connect fan to shaft
-        shaft = architecture.get_elements_by_type(Shaft)[0]
+        shaft = architecture.get_elements_by_type(Shaft)[-1]
         shaft.connections.append(fan)
+
+        if include_mixing:
+            self._include_mixing(architecture)
+
+    @staticmethod
+    def _include_mixing(architecture: TurbofanArchitecture):
+
+        nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
+        nozzle_bypass = architecture.get_elements_by_type(Nozzle)[1]
+
+        # Create new elements: joint nozzle and mixer
+        nozzle_joint = Nozzle(
+            name='nozzle_joint', type=NozzleType.CV,
+            v_loss_coefficient=.99, fuel_in_air=True
+        )
+
+        mixer = Mixer(
+            name='mixer', source_1=nozzle_core, source_2=nozzle_bypass,
+            target=nozzle_joint
+        )
+
+        nozzle_core.flow_out = 'Fl_I1'
+        nozzle_core.target = mixer
+        nozzle_bypass.flow_out = 'Fl_I2'
+        nozzle_bypass.target = mixer
+
+        architecture.elements += [nozzle_joint, mixer]

@@ -25,7 +25,7 @@ def get_turbojet_architecture() -> TurbofanArchitecture:
     )
 
     turbine.target = nozzle = Nozzle(
-        name='nozzle', type=NozzleType.CD,
+        name='nozzle_core', type=NozzleType.CD,
         v_loss_coefficient=.99,
     )
 
@@ -34,8 +34,8 @@ def get_turbojet_architecture() -> TurbofanArchitecture:
         rpm_design=8070, power_loss=0.,
     )
 
-    bleed = Bleed(
-        name='bleed', case='intra', bleed_names=['bld'], connections=['lpc', 'lpt']
-    )
+    # bleed = BleedIntra(
+    #     name='bld', source=compressor
+    # )
 
-    return TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft, bleed])
+    return TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft])
