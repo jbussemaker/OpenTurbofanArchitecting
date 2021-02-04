@@ -21,11 +21,11 @@ from open_turb_arch.architecting.choice import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
-__all__ = ['GearChoice']
+__all__ = ['GearboxChoice']
 
 
 @dataclass(frozen=False)
-class GearChoice(ArchitectingChoice):
+class GearboxChoice(ArchitectingChoice):
     """Represents the choices of whether to include a gear or not and which gear ratio to use if yes."""
 
     fix_include_gear: bool = None  # Set to True of False to fix the choice of whether to include a gear or not
@@ -45,33 +45,48 @@ class GearChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 0
+        return 1        # Executed after the fan_choice
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
             -> Sequence[bool]:
 
-        # The BPR and FPR design variables are only active if a fan is included
-        include_gear, gear_ratio = design_vector
-        is_active = [True, include_gear]
+        # Check if fan is present
+        fan_present = False
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'fan':
+                fan_present = True
 
-        if include_gear:
-            self._include_gear(architecture, gear_ratio)
+        # The gearbox choice is only active if a fan is included
+        include_gear, gear_ratio = design_vector
+        is_active = [fan_present, include_gear]
+
+        if fan_present and include_gear:
+            self._include_gearbox(architecture, gear_ratio=gear_ratio)
 
         return is_active
 
     @staticmethod
-    def _include_gear(architecture: TurbofanArchitecture, gear_ratio: float):
+    def _include_gearbox(architecture: TurbofanArchitecture, gear_ratio: float):
 
-        fan = architecture.get_elements_by_type(Compressor)[-1]
-        lp_shaft = architecture.get_elements_by_type(Shaft)[-1]
+        # Find necessary elements
+        fan = architecture.get_elements_by_type(Compressor)[0]
+        core_shaft = architecture.get_elements_by_type(Shaft)[0]
+
+        # Disconnect fan from LP_shaft
+        del core_shaft.connections[-1]
 
         # Create new elements: the fan shaft and gearbox
         fan_shaft = Shaft(
-            name='fan_shaft', connections=[fan]
+            name='fan_shaft', connections=[fan], rpm_design=core_shaft.rpm_design/gear_ratio
         )
 
         gearbox = Gearbox(
-            name='gearbox', connections=[fan_shaft, lp_shaft]
+            name='gearbox', core_shaft=core_shaft, fan_shaft=fan_shaft
         )
 
-        architecture.elements += [fan_shaft, gearbox]
+        core_shaft.connections.append(gearbox)
+        fan_shaft.connections.append(gearbox)
+
+        architecture.elements.insert(architecture.elements.index(core_shaft), fan_shaft)
+        architecture.elements.insert(architecture.elements.index(fan_shaft), gearbox)
