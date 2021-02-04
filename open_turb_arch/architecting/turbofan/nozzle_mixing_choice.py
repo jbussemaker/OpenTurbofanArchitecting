@@ -51,8 +51,8 @@ class NozzleMixingChoice(ArchitectingChoice):
                 fan_present = True
 
         # The mixing choice is only active if a fan is included
-        include_mixing = design_vector
-        is_active = [include_mixing]
+        fan_present, include_mixing = design_vector
+        is_active = [fan_present, include_mixing]
 
         if fan_present and include_mixing == [True]:
             self._include_mixing(architecture)

@@ -60,7 +60,7 @@ class ShaftChoice(ArchitectingChoice):
         compressor = architecture.get_elements_by_type(Compressor)[0]
         turbine = architecture.get_elements_by_type(Turbine)[number]
         nozzle = architecture.get_elements_by_type(Nozzle)[0]
-        shaft = architecture.get_elements_by_type(Shaft)[number]
+        shaft = architecture.get_elements_by_type(Shaft)[0]
 
         # Define names for added shafts
         if number == 0:
@@ -89,12 +89,12 @@ class ShaftChoice(ArchitectingChoice):
         # Insert compressor, turbine and shaft into architecture elements list
         architecture.elements.insert(architecture.elements.index(compressor), comp_new)
         architecture.elements.insert(architecture.elements.index(turbine)+1, turb_new)
-        architecture.elements.insert(architecture.elements.index(shaft)+1, shaft_new)
+        architecture.elements.insert(architecture.elements.index(shaft), shaft_new)
 
-        # Reroute flow from inlet
+        # Reroute flow from inlet and new compressor
         inlet.target = comp_new
         comp_new.target = compressor
 
-        # Reroute flow to nozzle
+        # Reroute flow to new turbine and nozzle
         turbine.target = turb_new
         turb_new.target = nozzle
