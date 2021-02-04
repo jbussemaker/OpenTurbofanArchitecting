@@ -51,7 +51,7 @@ class FanChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 0
+        return 1
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
             -> Sequence[bool]:

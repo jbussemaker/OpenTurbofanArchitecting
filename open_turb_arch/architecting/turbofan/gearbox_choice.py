@@ -45,7 +45,7 @@ class GearboxChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 1        # Executed after the fan_choice
+        return 2        # Executed after the fan_choice
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
             -> Sequence[bool]:
