@@ -16,6 +16,7 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import openmdao.api as om
+import warnings
 import pycycle.api as pyc
 from open_turb_arch.evaluation.architecture.flow import *
 import open_turb_arch.evaluation.architecture.units as units
@@ -69,7 +70,7 @@ class DesignBalancer(Balancer):
         if len(burners) == 0:
             return
         if len(burners) > 1:
-            raise RuntimeError('Currently only one burner supported for T4 balancing')
+            warnings.warn('Check T4 balancing for multiple burners')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='degR', lower=1e-4, val=self._init_far, rhs_name='T4_target')
@@ -139,7 +140,7 @@ class OffDesignBalancer(Balancer):
         if len(burners) == 0:
             return
         if len(burners) > 1:
-            raise RuntimeError('Currently only one burner supported for off-design T4 balancing')
+            warnings.warn('Check T4 balancing for multiple burners')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='lbf', lower=1e-4, val=self._init_far, rhs_name='Fn_target')

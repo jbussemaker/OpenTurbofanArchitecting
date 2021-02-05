@@ -103,9 +103,11 @@ class Burner(ArchElement):
     fuel: FuelType = FuelType.JET_A  # Type of fuel
     mach: float = .01  # Reference Mach number for loss calculations
     p_loss_frac: float = 0.  # Pressure loss as fraction of incoming pressure (dPqP)
+    fuel_in_air: bool = False  # Whether the air mix contains fuel at the burner entry
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-        el = pyc.Combustor(design=design, thermo_data=thermo_data, inflow_elements=pyc.AIR_ELEMENTS,
+        inflow_elements = pyc.AIR_FUEL_ELEMENTS if self.fuel_in_air else pyc.AIR_ELEMENTS
+        el = pyc.Combustor(design=design, thermo_data=thermo_data, inflow_elements=inflow_elements,
                            air_fuel_elements=pyc.AIR_FUEL_ELEMENTS, fuel_type=self.fuel.value)
         cycle.pyc_add_element(self.name, el)
 
