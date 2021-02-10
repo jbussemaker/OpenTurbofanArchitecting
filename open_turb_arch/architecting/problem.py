@@ -118,6 +118,20 @@ class ArchitectingProblem:
     def get_random_design_vector(self) -> DesignVector:
         return [dv.encode(dv.get_random_value()) for dv in self.free_opt_des_vars]
 
+    def iter_design_vectors(self, n_cont: int = 5) -> Generator[DesignVector, None, None]:
+
+        def _iter_next_dv(dvs: List[DesignVariable]):
+            if len(dvs) == 0:
+                yield []
+                return
+
+            for value in dvs[0].iter_values(n_cont=n_cont):
+                encoded = [dvs[0].encode(value)]
+                for values in _iter_next_dv(dvs[1:]):
+                    yield encoded+values
+
+        yield from _iter_next_dv(self.free_opt_des_vars)
+
     def evaluate(self, design_vector: DesignVector) -> Tuple[DesignVector, List[float], List[float], List[float]]:
 
         # Generate architecture

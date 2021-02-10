@@ -222,6 +222,17 @@ def test_design_vector(an_problem):
         assert free_dv[0] == full_dv[0]
         assert free_dv[1] == full_dv[2]
 
+    n_dv = 0
+    for dvs in problem.iter_design_vectors(n_cont=5):
+        n_dv += 1
+        assert len(dvs) == 2
+
+        full_dv, des_value_vector = problem.get_full_design_vector(dvs)
+        assert len(full_dv) == 3
+        assert len(des_value_vector) == 3
+
+    assert n_dv == 5*3  # 5 points for the continuous dv1, 3 for dv3 (dv2 is fixed)
+
 
 def test_generate_architecture(an_problem):
     problem = ArchitectingProblem(an_problem, choices=[DummyChoice()], objectives=[DummyMetric()])
@@ -237,6 +248,18 @@ def test_generate_architecture(an_problem):
         assert compressor.pr == dv[0]
 
         assert free_des_vector[1] == problem.free_opt_des_vars[1].get_imputed_value()
+
+    n_dv = 0
+    unique_dvs = set()
+    for dv in problem.iter_design_vectors(n_cont=5):
+        n_dv += 1
+        architecture, imputed_dv = problem.generate_architecture(dv)
+        assert isinstance(architecture, TurbofanArchitecture)
+        assert len(imputed_dv) == len(dv)
+
+        unique_dvs.add(tuple(imputed_dv))
+
+    assert len(unique_dvs) < n_dv
 
 
 class ArchitectureProblemTester(ArchitectingProblem):
