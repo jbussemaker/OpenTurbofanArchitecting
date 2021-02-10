@@ -16,6 +16,7 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import random
+import numpy as np
 from typing import *
 from enum import Enum
 from dataclasses import dataclass
@@ -55,6 +56,9 @@ class DesignVariable:
     def get_random_value(self):  # Decoded
         raise NotImplementedError
 
+    def iter_values(self, n_cont: int = 5):  # Decoded
+        raise NotImplementedError
+
 
 @dataclass
 class ContinuousDesignVariable(DesignVariable):
@@ -79,6 +83,10 @@ class ContinuousDesignVariable(DesignVariable):
 
     def get_random_value(self):
         return random.random()*(self.bounds[1]-self.bounds[0])+self.bounds[0]
+
+    def iter_values(self, n_cont: int = 5):  # Decoded
+        values = np.linspace(self.bounds[0], self.bounds[1], n_cont)
+        yield from values
 
 
 class IntDesignVariableType(Enum):
@@ -121,6 +129,9 @@ class IntegerDesignVariable(DesignVariable):
 
     def get_random_value(self):  # Decoded
         return random.choice(self.values)
+
+    def iter_values(self, n_cont: int = 5):  # Decoded
+        yield from self.values
 
 
 @dataclass
