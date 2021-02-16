@@ -104,6 +104,8 @@ class Burner(ArchElement):
     mach: float = .01  # Reference Mach number for loss calculations
     p_loss_frac: float = 0.  # Pressure loss as fraction of incoming pressure (dPqP)
     fuel_in_air: bool = False  # Whether the air mix contains fuel at the burner entry
+    main: bool = True  # Whether the Burner is the main burner of the engine
+    far: float = 0  # Fuel-air ratio in case of non-main burner
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         inflow_elements = pyc.AIR_FUEL_ELEMENTS if self.fuel_in_air else pyc.AIR_ELEMENTS
@@ -113,6 +115,8 @@ class Burner(ArchElement):
 
         if design:
             el.set_input_defaults('MN', self.mach)
+            if not self.main:
+                el.set_input_defaults('Fl_I:FAR', self.far)
         return el
 
     def connect(self, cycle: pyc.Cycle):

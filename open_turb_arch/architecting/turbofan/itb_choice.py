@@ -30,12 +30,19 @@ class ITBChoice(ArchitectingChoice):
 
     fix_include_itb: bool = None  # Set to True of False to fix the choice of whether to include an inter-turbine burner or not
 
+    fixed_far: float = None  # Fix the FAR of the inter-turbine burner
+    far_bounds: Tuple[float, float] = (0., 0.1)  # FAR design bounds (verify & validate!!)
+
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             IntegerDesignVariable(
                 'include_itb', type=IntDesignVariableType.CATEGORICAL, values=[False, True],
                 fixed_value=self.fix_include_itb),
-            ]
+
+            ContinuousDesignVariable(
+                'far', bounds=self.far_bounds, fixed_value=self.fixed_far),
+
+        ]
 
     def get_construction_order(self) -> int:
         return 5        # Executed after the fan_choice
@@ -48,16 +55,16 @@ class ITBChoice(ArchitectingChoice):
         turbines_present = True if len(turbines) >= 2 else False
 
         # The inter-turbine burner choice is only active if fan is included
-        include_itb = design_vector
-        is_active = [turbines_present]
+        include_itb, far = design_vector
+        is_active = [turbines_present, (turbines_present and include_itb)]
 
-        if turbines_present and include_itb == [True]:
-            self._include_itb(architecture)
+        if turbines_present and include_itb:
+            self._include_itb(architecture, far)
 
         return is_active
 
     @staticmethod
-    def _include_itb(architecture: TurbofanArchitecture):
+    def _include_itb(architecture: TurbofanArchitecture, far: float):
 
         # Find necessary elements
         turbine = architecture.get_elements_by_type(Turbine)[0]
@@ -66,7 +73,7 @@ class ITBChoice(ArchitectingChoice):
 
         # Create new elements: the inter-turbine burner
         itb = Burner(
-            name='itb', fuel=fuel_type, fuel_in_air=True
+            name='itb', fuel=fuel_type, fuel_in_air=True, main=False, far=far
         )
 
         # Reroute flows

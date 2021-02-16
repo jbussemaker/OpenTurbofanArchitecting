@@ -30,11 +30,18 @@ class AfterburnerChoice(ArchitectingChoice):
 
     fix_include_afterburner: bool = None  # Set to True of False to fix the choice of whether to include an afterburner or not
 
+    fixed_far: float = None  # Fix the FAR of the afterburner
+    far_bounds: Tuple[float, float] = (0., 0.1)  # FAR design bounds (verify & validate!!)
+
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             IntegerDesignVariable(
                 'include_afterburner', type=IntDesignVariableType.CATEGORICAL, values=[False, True],
                 fixed_value=self.fix_include_afterburner),
+
+            ContinuousDesignVariable(
+                'far', bounds=self.far_bounds, fixed_value=self.fixed_far),
+
             ]
 
     def get_construction_order(self) -> int:
@@ -51,16 +58,17 @@ class AfterburnerChoice(ArchitectingChoice):
                 fan_present = True
 
         # The afterburner choice is only active if no fan is included
-        include_afterburner = design_vector
-        is_active = [(not fan_present)]
+        include_afterburner, far = design_vector
+        is_active = [(not fan_present), (not fan_present and include_afterburner)]
 
-        if include_afterburner == [True] and not fan_present:
-            self._include_afterburner(architecture)
+        if include_afterburner and not fan_present:
+            print('yes')
+            self._include_afterburner(architecture, far)
 
         return is_active
 
     @staticmethod
-    def _include_afterburner(architecture: TurbofanArchitecture):
+    def _include_afterburner(architecture: TurbofanArchitecture, far: float):
 
         # Find necessary elements
         turbine = architecture.get_elements_by_type(Turbine)[-1]
@@ -69,7 +77,7 @@ class AfterburnerChoice(ArchitectingChoice):
 
         # Create new elements: the afterburner
         afterburner = Burner(
-            name='afterburner', fuel=fuel_type, fuel_in_air=True
+            name='afterburner', fuel=fuel_type, fuel_in_air=True, main=False, far=far
         )
 
         # Reroute flows
