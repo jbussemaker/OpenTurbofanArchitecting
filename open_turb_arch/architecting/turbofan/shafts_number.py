@@ -45,7 +45,7 @@ class ShaftChoice(ArchitectingChoice):
 
         # The number of added shaft is always active
         number_shafts = design_vector
-        is_active = [number_shafts]
+        is_active = [True]
 
         for shaft in range(0, number_shafts[0]):
             self._add_shafts(architecture, shaft)

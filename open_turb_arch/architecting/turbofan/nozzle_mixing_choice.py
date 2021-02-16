@@ -38,7 +38,7 @@ class NozzleMixingChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 2        # Executed after the fan_choice
+        return 3        # Executed after the fan_choice
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
             -> Sequence[bool]:
@@ -52,7 +52,7 @@ class NozzleMixingChoice(ArchitectingChoice):
 
         # The mixing choice is only active if a fan is included
         include_mixing = design_vector
-        is_active = [include_mixing]
+        is_active = [fan_present]
 
         if fan_present and include_mixing == [True]:
             self._include_mixing(architecture)

@@ -49,7 +49,7 @@ class ITBChoice(ArchitectingChoice):
 
         # The inter-turbine burner choice is only active if fan is included
         include_itb = design_vector
-        is_active = [include_itb]
+        is_active = [turbines_present]
 
         if turbines_present and include_itb == [True]:
             self._include_itb(architecture)

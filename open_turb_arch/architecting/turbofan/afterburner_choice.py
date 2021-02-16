@@ -38,7 +38,7 @@ class AfterburnerChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 2        # Executed after the fan_choice
+        return 4        # Executed after the fan_choice
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
             -> Sequence[bool]:
@@ -52,7 +52,7 @@ class AfterburnerChoice(ArchitectingChoice):
 
         # The afterburner choice is only active if no fan is included
         include_afterburner = design_vector
-        is_active = [include_afterburner]
+        is_active = [(not fan_present)]
 
         if include_afterburner == [True] and not fan_present:
             self._include_afterburner(architecture)

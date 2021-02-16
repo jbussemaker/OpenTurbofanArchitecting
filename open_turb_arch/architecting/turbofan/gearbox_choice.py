@@ -59,7 +59,7 @@ class GearboxChoice(ArchitectingChoice):
 
         # The gearbox choice is only active if a fan is included
         include_gear, gear_ratio = design_vector
-        is_active = [fan_present, include_gear]
+        is_active = [fan_present, (fan_present and include_gear)]
 
         if fan_present and include_gear:
             self._include_gearbox(architecture, gear_ratio=gear_ratio)
