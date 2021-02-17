@@ -222,16 +222,17 @@ def test_design_vector(an_problem):
         assert free_dv[0] == full_dv[0]
         assert free_dv[1] == full_dv[2]
 
-    n_dv = 0
-    for dvs in problem.iter_design_vectors(n_cont=5):
-        n_dv += 1
-        assert len(dvs) == 2
+    for n_cont in [5, 1]:
+        n_dv = 0
+        for dvs in problem.iter_design_vectors(n_cont=n_cont):
+            n_dv += 1
+            assert len(dvs) == 2
 
-        full_dv, des_value_vector = problem.get_full_design_vector(dvs)
-        assert len(full_dv) == 3
-        assert len(des_value_vector) == 3
+            full_dv, des_value_vector = problem.get_full_design_vector(dvs)
+            assert len(full_dv) == 3
+            assert len(des_value_vector) == 3
 
-    assert n_dv == 5*3  # 5 points for the continuous dv1, 3 for dv3 (dv2 is fixed)
+        assert n_dv == n_cont*3  # 3 for dv3 (dv2 is fixed)
 
 
 def test_generate_architecture(an_problem):

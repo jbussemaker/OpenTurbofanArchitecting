@@ -85,8 +85,11 @@ class ContinuousDesignVariable(DesignVariable):
         return random.random()*(self.bounds[1]-self.bounds[0])+self.bounds[0]
 
     def iter_values(self, n_cont: int = 5):  # Decoded
-        values = np.linspace(self.bounds[0], self.bounds[1], n_cont)
-        yield from values
+        if n_cont <= 1:
+            yield (self.bounds[0]+self.bounds[1])/2.
+        else:
+            values = np.linspace(self.bounds[0], self.bounds[1], n_cont)
+            yield from values
 
 
 class IntDesignVariableType(Enum):
