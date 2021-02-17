@@ -16,8 +16,10 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import pytest
+import numpy as np
 from typing import *
 from dataclasses import dataclass
+from open_turb_arch.architecting.pymoo import *
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
@@ -122,6 +124,7 @@ class DummyChoice(ArchitectingChoice):
             ContinuousDesignVariable('dv1', bounds=(5., 20.)),
             IntegerDesignVariable('dv2', type=IntDesignVariableType.DISCRETE, values=[1, 2, 3, 4], fixed_value=3),
             IntegerDesignVariable('dv3', type=IntDesignVariableType.CATEGORICAL, values=[5, 4, 3]),
+            IntegerDesignVariable('dv4', type=IntDesignVariableType.CATEGORICAL, values=[8, 7, 6]),
         ]
 
     def get_construction_order(self) -> int:
@@ -129,16 +132,16 @@ class DummyChoice(ArchitectingChoice):
         return 0
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+            -> Sequence[Union[bool, DecodedValue]]:
         """Modify the default turbojet architecture based on the given design vector. Should return for each of the
         design variables whether they are active or not."""
 
-        dv1, dv2, dv3 = design_vector
+        dv1, dv2, dv3, dv4 = design_vector
 
         compressor = architecture.get_elements_by_type(Compressor)[0]
         compressor.pr = dv1
 
-        return [True, True, False]  # is_active
+        return [True, True, False, 7]  # is_active or overwrite
 
 
 @dataclass
@@ -180,11 +183,11 @@ def test_problem(an_problem):
     assert len(problem.constraints) == 1
     assert len(problem.metrics) == 1
 
-    assert len(problem.opt_des_vars) == 3
+    assert len(problem.opt_des_vars) == 4
     assert all([isinstance(dv, DesignVariable) for dv in problem.opt_des_vars])
-    assert len(problem.free_opt_des_vars) == 2
+    assert len(problem.free_opt_des_vars) == 3
 
-    assert len(problem.get_random_design_vector()) == 2
+    assert len(problem.get_random_design_vector()) == 3
 
     assert len(problem.opt_objectives) == 1
     assert all([isinstance(obj, Objective) for obj in problem.opt_objectives])
@@ -199,39 +202,44 @@ def test_design_vector(an_problem):
     dv1: ContinuousDesignVariable
     dv2: IntegerDesignVariable
     dv3: IntegerDesignVariable
-    dv1, dv2, dv3 = problem.opt_des_vars
+    dv4: IntegerDesignVariable
+    dv1, dv2, dv3, dv4 = problem.opt_des_vars
 
     for _ in range(100):
         dvs = problem.get_random_design_vector()
-        assert len(dvs) == 2
+        assert len(dvs) == 3
 
         full_dv, des_value_vector = problem.get_full_design_vector(dvs)
-        assert len(full_dv) == 3
-        assert len(des_value_vector) == 3
+        assert len(full_dv) == 4
+        assert len(des_value_vector) == 4
 
         assert dv1.bounds[0] <= full_dv[0] <= dv1.bounds[1]
         assert dv2.decode(full_dv[1]) == dv2.fixed_value
         assert dv3.decode(full_dv[2]) in dv3.values
+        assert dv4.decode(full_dv[3]) in dv4.values
 
         assert dv1.bounds[0] <= des_value_vector[0] <= dv1.bounds[1]
         assert des_value_vector[1] == dv2.fixed_value
         assert des_value_vector[2] in dv3.values
+        assert des_value_vector[3] in dv4.values
 
         free_dv = problem.get_free_design_vector(full_dv)
-        assert len(free_dv) == 2
+        assert len(free_dv) == 3
         assert free_dv[0] == full_dv[0]
         assert free_dv[1] == full_dv[2]
+        assert free_dv[2] == full_dv[3]
 
-    n_dv = 0
-    for dvs in problem.iter_design_vectors(n_cont=5):
-        n_dv += 1
-        assert len(dvs) == 2
+    for n_cont in [5, 1]:
+        n_dv = 0
+        for dvs in problem.iter_design_vectors(n_cont=n_cont):
+            n_dv += 1
+            assert len(dvs) == 3
 
-        full_dv, des_value_vector = problem.get_full_design_vector(dvs)
-        assert len(full_dv) == 3
-        assert len(des_value_vector) == 3
+            full_dv, des_value_vector = problem.get_full_design_vector(dvs)
+            assert len(full_dv) == 4
+            assert len(des_value_vector) == 4
 
-    assert n_dv == 5*3  # 5 points for the continuous dv1, 3 for dv3 (dv2 is fixed)
+        assert n_dv == n_cont*3*3  # 3 for dv3 and dv4 (dv2 is fixed)
 
 
 def test_generate_architecture(an_problem):
@@ -248,6 +256,7 @@ def test_generate_architecture(an_problem):
         assert compressor.pr == dv[0]
 
         assert free_des_vector[1] == problem.free_opt_des_vars[1].get_imputed_value()
+        assert free_des_vector[2] == problem.free_opt_des_vars[2].encode(7)
 
     n_dv = 0
     unique_dvs = set()
@@ -287,6 +296,7 @@ def test_evaluate(an_problem):
         free_des_vector, obj, con, met = problem.evaluate(dv)
         assert len(free_des_vector) == len(dv)
         assert free_des_vector[1] == problem.free_opt_des_vars[1].get_imputed_value()
+        assert free_des_vector[2] == 1
 
         assert obj == [.10*dv[0]]
         assert con == [.15*dv[0]]
@@ -312,9 +322,9 @@ def test_evaluate_architecture(an_problem):
     assert len(dv_imputed) == len(dv)
     assert dv_imputed[0] == dv[0]
 
-    assert obj == [pytest.approx(22.6075, abs=1e-4)]
-    assert con == [pytest.approx(22.6075, abs=1e-4)]
-    assert met == [pytest.approx(22.6075, abs=1e-4)]
+    assert obj == [pytest.approx(22.6075, abs=1e-1)]
+    assert con == [pytest.approx(22.6075, abs=1e-1)]
+    assert met == [pytest.approx(22.6075, abs=1e-1)]
 
 
 def test_platypus_problem(an_problem):
@@ -332,7 +342,7 @@ def test_platypus_problem(an_problem):
 
     platypus_problem = problem.get_platypus_problem()
     assert isinstance(platypus_problem, PlatypusArchitectingProblem)
-    assert platypus_problem.nvars == 2
+    assert platypus_problem.nvars == 3
     assert platypus_problem.nobjs == 1
     assert platypus_problem.nconstrs == 1
 
@@ -343,6 +353,10 @@ def test_platypus_problem(an_problem):
     assert isinstance(platypus_problem.types[1], Integer)
     assert platypus_problem.types[1].min_value == 0
     assert platypus_problem.types[1].max_value == 2
+
+    assert isinstance(platypus_problem.types[2], Integer)
+    assert platypus_problem.types[2].min_value == 0
+    assert platypus_problem.types[2].max_value == 2
 
     assert platypus_problem.directions[0] == -1
     assert platypus_problem.constraints[0].op == '<=0.05'
@@ -356,6 +370,7 @@ def test_platypus_problem(an_problem):
         platypus_problem(sol)
         assert sol.evaluated
         assert platypus_problem.types[1].decode(sol.variables[1]) == 0
+        assert platypus_problem.types[2].decode(sol.variables[2]) == 1
 
         assert sol.objectives[:] == [.10*dv1]
         assert sol.constraints[:] == [.15*dv1]
@@ -416,3 +431,61 @@ def test_openmdao_component(an_problem):
     assert n_imputed > 0
 
     om_prob.run_driver()
+
+
+def test_pymoo_problem(an_problem):
+    from pymoo.model.evaluator import Evaluator
+    from pymoo.operators.sampling.random_sampling import FloatRandomSampling
+
+    problem = ArchitectureProblemTester(
+        analysis_problem=an_problem,
+        choices=[DummyChoice()],
+        objectives=[DummyMetric()],
+        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
+        metrics=[DummyMetric()],
+    )
+
+    pymoo_problem = problem.get_pymoo_problem()
+    assert isinstance(pymoo_problem, PymooArchitectingProblem)
+    assert pymoo_problem.n_var == 3
+    assert pymoo_problem.n_obj == 1
+    assert pymoo_problem.n_constr == 1
+
+    assert list(pymoo_problem.xl) == [5., 0., 0.]
+    assert list(pymoo_problem.xu) == [20., 2., 2.]
+    assert pymoo_problem.mask == ['real', 'int', 'int']
+    assert pymoo_problem.is_int_mask == [False, True, True]
+
+    assert pymoo_problem.obj_is_max == [False]
+    assert pymoo_problem.con_ref == [(False, .05)]
+
+    sampling = FloatRandomSampling()
+    pop = sampling.do(pymoo_problem, 100)
+    assert len(pop) == 100
+
+    evaluator = Evaluator()
+    evaluator.eval(pymoo_problem, pop)
+
+    x = pop.get('X')
+    assert x.shape == (100, 3)
+    dv1 = x[:, 0]
+    assert np.all(x[:, 1] == 0)
+    assert np.all(x[:, 2] == 1)
+
+    assert all([pop[i].F is not None for i in range(len(pop))])
+    f = pop.get('F')
+    assert f.shape == (100, 1)
+    assert np.all(f[:, 0] == (.10*dv1))
+
+    g = pop.get('G')
+    assert g.shape == (100, 1)
+    assert np.all(g[:, 0] == (.15*dv1-.05))
+
+    repair = pymoo_problem.get_repair()
+    pop = sampling.do(pymoo_problem, 100)
+    x1 = pop.get('X')[:, 1]
+    assert not np.all(np.round(x1) == x1)
+
+    pop_repaired = repair.do(pymoo_problem, pop)
+    x1 = pop_repaired.get('X')[:, 1]
+    assert np.all(np.round(x1) == x1)

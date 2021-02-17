@@ -47,6 +47,7 @@ if __name__ == '__main__':
             'ordered_set',
             'numpy',
             'Platypus-Opt',
+            'pymoo',
         ],
         python_requires='>=3.6',
         packages=find_packages(),

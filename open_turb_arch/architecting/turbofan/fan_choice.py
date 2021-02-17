@@ -54,7 +54,7 @@ class FanChoice(ArchitectingChoice):
         return 1
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+            -> Sequence[Union[bool, DecodedValue]]:
 
         # The BPR and FPR design variables are only active if a fan is included
         include_fan, bpr, fpr = design_vector

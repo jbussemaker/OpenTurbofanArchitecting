@@ -20,7 +20,7 @@ from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.architecture import TurbofanArchitecture
 
 __all__ = ['ArchitectingChoice', 'DesignVariable', 'ContinuousDesignVariable', 'IntDesignVariableType',
-           'IntegerDesignVariable', 'DecodedDesignVector', 'TurbofanArchitecture']
+           'IntegerDesignVariable', 'DecodedDesignVector', 'TurbofanArchitecture', 'DecodedValue']
 
 
 class ArchitectingChoice:
@@ -35,7 +35,7 @@ class ArchitectingChoice:
         raise NotImplementedError
 
     def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+            -> Sequence[Union[bool, DecodedValue]]:
         """Modify the default turbojet architecture based on the given design vector. Should return for each of the
-        design variables whether they are active or not."""
+        design variables whether they are active or not, or an explicit overwritten value of the design variable."""
         raise NotImplementedError

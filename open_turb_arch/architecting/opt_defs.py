@@ -24,12 +24,14 @@ from open_turb_arch.evaluation.analysis import *
 
 __all__ = ['DesignVariable', 'ContinuousDesignVariable', 'IntDesignVariableType', 'IntegerDesignVariable',
            'OutputMetric', 'ObjectiveDirection', 'Objective', 'ConstraintDirection', 'Constraint',
-           'DesignVector', 'DecodedDesignVector', 'OperatingMetricsMap',
+           'DesignVector', 'EncodedValue', 'DecodedValue', 'DecodedDesignVector', 'OperatingMetricsMap',
            'AnalysisProblem', 'OperatingCondition', 'DesignCondition', 'EvaluateCondition']
 
 
-DesignVector = List[Tuple[float, int]]
-DecodedDesignVector = List[Tuple[float, Any]]
+EncodedValue = Union[float, int]
+DecodedValue = Union[float, Any]
+DesignVector = List[EncodedValue]
+DecodedDesignVector = List[DecodedValue]
 OperatingMetricsMap = Dict[OperatingCondition, OperatingMetrics]
 
 
@@ -37,26 +39,26 @@ OperatingMetricsMap = Dict[OperatingCondition, OperatingMetrics]
 class DesignVariable:
     name: str
 
-    def encode(self, value):
+    def encode(self, value: DecodedValue) -> EncodedValue:
         raise NotImplementedError
 
-    def decode(self, value):
+    def decode(self, value: EncodedValue) -> DecodedValue:
         raise NotImplementedError
 
     @property
     def is_fixed(self) -> bool:
         raise NotImplementedError
 
-    def get_fixed_value(self):  # Decoded
+    def get_fixed_value(self) -> DecodedValue:
         raise NotImplementedError
 
-    def get_imputed_value(self):  # Encoded
+    def get_imputed_value(self) -> EncodedValue:
         raise NotImplementedError
 
-    def get_random_value(self):  # Decoded
+    def get_random_value(self) -> DecodedValue:
         raise NotImplementedError
 
-    def iter_values(self, n_cont: int = 5):  # Decoded
+    def iter_values(self, n_cont: int = 5) -> Generator[DecodedValue, None, None]:
         raise NotImplementedError
 
 
@@ -65,28 +67,31 @@ class ContinuousDesignVariable(DesignVariable):
     bounds: Tuple[float, float]
     fixed_value: float = None
 
-    def encode(self, value):
+    def encode(self, value: DecodedValue) -> EncodedValue:
         return value
 
-    def decode(self, value):
+    def decode(self, value: EncodedValue) -> DecodedValue:
         return value
 
     @property
     def is_fixed(self):
         return self.fixed_value is not None
 
-    def get_fixed_value(self):  # Decoded
+    def get_fixed_value(self) -> DecodedValue:
         return self.fixed_value
 
-    def get_imputed_value(self):  # Encoded
+    def get_imputed_value(self) -> EncodedValue:
         return (self.bounds[0]+self.bounds[1])/2.
 
-    def get_random_value(self):
+    def get_random_value(self) -> DecodedValue:
         return random.random()*(self.bounds[1]-self.bounds[0])+self.bounds[0]
 
-    def iter_values(self, n_cont: int = 5):  # Decoded
-        values = np.linspace(self.bounds[0], self.bounds[1], n_cont)
-        yield from values
+    def iter_values(self, n_cont: int = 5) -> Generator[DecodedValue, None, None]:
+        if n_cont <= 1:
+            yield (self.bounds[0]+self.bounds[1])/2.
+        else:
+            values = np.linspace(self.bounds[0], self.bounds[1], n_cont)
+            yield from values
 
 
 class IntDesignVariableType(Enum):
@@ -100,13 +105,13 @@ class IntegerDesignVariable(DesignVariable):
     values: list
     fixed_value: Any = None  # The fixed VALUE (should be in the values list!)
 
-    def encode(self, value):
+    def encode(self, value: DecodedValue) -> EncodedValue:
         try:
             return self.values.index(value)
         except ValueError:
             raise ValueError('Value %r not in values (des var %s): %r' % (value, self.values, self.name))
 
-    def decode(self, value):
+    def decode(self, value: EncodedValue) -> DecodedValue:
         try:
             if value < 0:
                 raise IndexError
@@ -118,19 +123,19 @@ class IntegerDesignVariable(DesignVariable):
     def is_fixed(self):
         return self.fixed_value is not None
 
-    def get_fixed_value(self):
+    def get_fixed_value(self) -> DecodedValue:
         if self.fixed_value not in self.values:
             raise ValueError('Fixed value (%r) not in available values (%s): %r' %
                              (self.fixed_value, self.name, self.values))
         return self.fixed_value
 
-    def get_imputed_value(self):  # Encoded
+    def get_imputed_value(self) -> EncodedValue:
         return 0
 
-    def get_random_value(self):  # Decoded
+    def get_random_value(self) -> DecodedValue:
         return random.choice(self.values)
 
-    def iter_values(self, n_cont: int = 5):  # Decoded
+    def iter_values(self, n_cont: int = 5) -> Generator[DecodedValue, None, None]:
         yield from self.values
 
 

@@ -111,6 +111,10 @@ class ArchitectingProblem:
         from open_turb_arch.architecting.platypus import PlatypusArchitectingProblem
         return PlatypusArchitectingProblem(self)
 
+    def get_pymoo_problem(self):
+        from open_turb_arch.architecting.pymoo import PymooArchitectingProblem
+        return PymooArchitectingProblem(self)
+
     def get_openmdao_component(self):
         from open_turb_arch.architecting.openmdao import ArchitectingProblemComponent
         return ArchitectingProblemComponent(self)
@@ -156,12 +160,14 @@ class ArchitectingProblem:
         i_dv = 0
         for i, choice in enumerate(self.choices):
             n_dv = len(self._opt_des_vars[i])
-            is_active = choice.modify_architecture(architecture, decoded_design_vector[i_dv:i_dv+n_dv])
+            is_active_or_overwrite = choice.modify_architecture(architecture, decoded_design_vector[i_dv:i_dv+n_dv])
 
             # Impute (i.e. set to default value) inactive design variables
-            for j, is_act in enumerate(is_active):
-                if not is_act:
+            for j, is_act_or_overwrite in enumerate(is_active_or_overwrite):
+                if is_act_or_overwrite is False:  # Not active --> impute the value
                     imputed_full_design_vector[i_dv+j] = self._opt_des_vars[i][j].get_imputed_value()
+                elif is_act_or_overwrite is not True:  # Explicit overwritten value provided
+                    imputed_full_design_vector[i_dv+j] = self._opt_des_vars[i][j].encode(is_act_or_overwrite)
 
             i_dv += n_dv
 
