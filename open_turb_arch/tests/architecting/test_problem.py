@@ -16,8 +16,10 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import pytest
+import numpy as np
 from typing import *
 from dataclasses import dataclass
+from open_turb_arch.architecting.pymoo import *
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
@@ -429,3 +431,61 @@ def test_openmdao_component(an_problem):
     assert n_imputed > 0
 
     om_prob.run_driver()
+
+
+def test_pymoo_problem(an_problem):
+    from pymoo.model.evaluator import Evaluator
+    from pymoo.operators.sampling.random_sampling import FloatRandomSampling
+
+    problem = ArchitectureProblemTester(
+        analysis_problem=an_problem,
+        choices=[DummyChoice()],
+        objectives=[DummyMetric()],
+        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
+        metrics=[DummyMetric()],
+    )
+
+    pymoo_problem = problem.get_pymoo_problem()
+    assert isinstance(pymoo_problem, PymooArchitectingProblem)
+    assert pymoo_problem.n_var == 3
+    assert pymoo_problem.n_obj == 1
+    assert pymoo_problem.n_constr == 1
+
+    assert list(pymoo_problem.xl) == [5., 0., 0.]
+    assert list(pymoo_problem.xu) == [20., 2., 2.]
+    assert pymoo_problem.mask == ['real', 'int', 'int']
+    assert pymoo_problem.is_int_mask == [False, True, True]
+
+    assert pymoo_problem.obj_is_max == [False]
+    assert pymoo_problem.con_ref == [(False, .05)]
+
+    sampling = FloatRandomSampling()
+    pop = sampling.do(pymoo_problem, 100)
+    assert len(pop) == 100
+
+    evaluator = Evaluator()
+    evaluator.eval(pymoo_problem, pop)
+
+    x = pop.get('X')
+    assert x.shape == (100, 3)
+    dv1 = x[:, 0]
+    assert np.all(x[:, 1] == 0)
+    assert np.all(x[:, 2] == 1)
+
+    assert all([pop[i].F is not None for i in range(len(pop))])
+    f = pop.get('F')
+    assert f.shape == (100, 1)
+    assert np.all(f[:, 0] == (.10*dv1))
+
+    g = pop.get('G')
+    assert g.shape == (100, 1)
+    assert np.all(g[:, 0] == (.15*dv1-.05))
+
+    repair = pymoo_problem.get_repair()
+    pop = sampling.do(pymoo_problem, 100)
+    x1 = pop.get('X')[:, 1]
+    assert not np.all(np.round(x1) == x1)
+
+    pop_repaired = repair.do(pymoo_problem, pop)
+    x1 = pop_repaired.get('X')[:, 1]
+    assert np.all(np.round(x1) == x1)

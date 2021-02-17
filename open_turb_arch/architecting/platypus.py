@@ -36,10 +36,10 @@ class PlatypusArchitectingProblem(Problem):
         n_vars = len(problem.free_opt_des_vars)
         if n_vars == 0:
             raise ValueError('No free design variables in optimization problem!')
-        n_objs = len(problem.objectives)
+        n_objs = len(problem.opt_objectives)
         if n_objs == 0:
             raise ValueError('No objectives in optimization problem!')
-        n_constr = len(problem.constraints)
+        n_constr = len(problem.opt_constraints)
         super(PlatypusArchitectingProblem, self).__init__(n_vars, n_objs, n_constr)
 
         # Set design variable types
