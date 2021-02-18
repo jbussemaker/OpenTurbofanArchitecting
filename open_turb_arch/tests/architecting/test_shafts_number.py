@@ -45,28 +45,28 @@ def _get_problem(shafts_problem, shafts_number):
 
 def test_des_vars(shafts_problem):
     problem = _get_problem(shafts_problem, ShaftChoice())
-    assert len(problem.opt_des_vars) == 1
-    assert len(problem.free_opt_des_vars) == 1
+    assert len(problem.opt_des_vars) == 5
+    assert len(problem.free_opt_des_vars) == 5
     assert isinstance(problem.opt_des_vars[0], IntegerDesignVariable)
 
     full_dv, _ = problem.get_full_design_vector([0])
-    assert len(full_dv) == 1
+    assert len(full_dv) == 5
 
 
 def test_modify_architecture(shafts_problem):
     problem = _get_problem(shafts_problem, ShaftChoice())
 
-    architecture, dv = problem.generate_architecture([0])
-    assert dv == [0]
+    architecture, dv = problem.generate_architecture([0, 5.5, 5.5, 10500, 10500])
+    assert dv == [0, 5.5, 5.5, 10500, 10500]
     assert len(architecture.get_elements_by_type(Compressor)) == 1
     assert len(architecture.get_elements_by_type(Turbine)) == 1
 
-    architecture, dv = problem.generate_architecture([1])
-    assert dv == [1]
+    architecture, dv = problem.generate_architecture([1, 5.5, 5.5, 10500, 10500])
+    assert dv == [1, 5.5, 5.5, 10500, 10500]
     assert len(architecture.get_elements_by_type(Compressor)) == 2
     assert len(architecture.get_elements_by_type(Turbine)) == 2
 
-    architecture, _ = problem.generate_architecture([2])
+    architecture, _ = problem.generate_architecture([2, 5.5, 5.5, 10500, 10500])
     assert len(architecture.get_elements_by_type(Compressor)) == 3
     assert len(architecture.get_elements_by_type(Turbine)) == 3
 

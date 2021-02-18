@@ -62,7 +62,6 @@ class AfterburnerChoice(ArchitectingChoice):
         is_active = [(not fan_present), (not fan_present and include_afterburner)]
 
         if include_afterburner and not fan_present:
-            print('yes')
             self._include_afterburner(architecture, far)
 
         return is_active
