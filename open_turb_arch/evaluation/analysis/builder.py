@@ -119,8 +119,8 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
-    t3: float = None  # Compressor exit temperature [degR]
-    p3: float = None  # Compressor exit pressure [psi]
+    t3: float = None  # Compressor exit temperature [K]
+    p3: float = None  # Compressor exit pressure [Pa]
 
 
 class ArchitectureCycle(pyc.Cycle):
@@ -225,7 +225,7 @@ class ArchitectureCycle(pyc.Cycle):
         newton.options['atol'] = 1e-8
         newton.options['rtol'] = 1e-8
         newton.options['iprint'] = 2
-        newton.options['maxiter'] = 1
+        newton.options['maxiter'] = 20
         newton.options['solve_subsystems'] = True
         newton.options['max_sub_solves'] = 100
         newton.options['reraise_child_analysiserror'] = False

@@ -16,9 +16,9 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 from typing import *
-from math import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.metric import *
+from open_turb_arch.evaluation.analysis.disciplines import *
 from open_turb_arch.evaluation.architecture import *
 
 __all__ = ['NOxMetric']
@@ -28,7 +28,7 @@ __all__ = ['NOxMetric']
 class NOxMetric(ArchitectingMetric):
     """Representing the engine weight as design goal or constraint."""
 
-    max_NOx: float = 1  # [kg], if used as a constraint
+    max_NOx: float = 1  # [(gram NOx)/kN], if used as a constraint
 
     # Specify the operating condition to extract from, otherwise will take the design condition
     condition: OperatingCondition = None
@@ -43,14 +43,8 @@ class NOxMetric(ArchitectingMetric):
         return [OutputMetric('NOx_met')]
 
     def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
-        return [self._get_NOx(analysis_problem, result, architecture)]
+        return [self._get_NOx(analysis_problem, result)]
 
-    def _get_NOx(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
-
+    def _get_NOx(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        pressure = ops_metrics.p3/10**3  # burner inlet pressure [kPa]
-        temperature = ops_metrics.t3+273.15  # burner inlet temperature [Kelvin]
-
-        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)  # equation from GasTurb
-
-        return NOx/10**3  # (gram NOx)/kN
+        return NOx.NOx_calculation(NOx, ops_metrics)
