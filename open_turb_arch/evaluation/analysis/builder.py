@@ -119,7 +119,7 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
-    t3: float = None  # Compressor exit temperature [K]
+    t3: float = None  # Compressor exit temperature [degC]
     p3: float = None  # Compressor exit pressure [Pa]
 
 
