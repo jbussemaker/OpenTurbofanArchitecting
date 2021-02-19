@@ -119,6 +119,8 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
+    t3: float = None  # Compressor exit temperature [degR]
+    p3: float = None  # Compressor exit pressure [psi]
 
 
 class ArchitectureCycle(pyc.Cycle):
@@ -223,7 +225,7 @@ class ArchitectureCycle(pyc.Cycle):
         newton.options['atol'] = 1e-8
         newton.options['rtol'] = 1e-8
         newton.options['iprint'] = 2
-        newton.options['maxiter'] = 2
+        newton.options['maxiter'] = 1
         newton.options['solve_subsystems'] = True
         newton.options['max_sub_solves'] = 100
         newton.options['reraise_child_analysiserror'] = False
@@ -301,6 +303,10 @@ class ArchitectureCycle(pyc.Cycle):
         def _float(val):
             return float(np.atleast_1d(val)[0])
 
+        fs_name = '%s.burner.Fl_I' % self.name
+        pressure = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:P'), units=units.PRESSURE, get_remote=None))
+        temperature = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:T'), units=units.TEMPERATURE, get_remote=None))
+
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
             mass_flow=_float(problem.get_val('%s.%s.Fl_O:stat:W' % (self.name, self.inlet_el_name),
@@ -308,6 +314,8 @@ class ArchitectureCycle(pyc.Cycle):
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),
+            t3=temperature,
+            p3=pressure
         )
 
 

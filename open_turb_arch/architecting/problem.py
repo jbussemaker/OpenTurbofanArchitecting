@@ -148,7 +148,7 @@ class ArchitectingProblem:
 
         # Evaluate architecture
         results = self.evaluate_architecture(architecture)
-        objective_values, constraint_values, metric_values = self.extract_metrics(results)
+        objective_values, constraint_values, metric_values = self.extract_metrics(results, architecture)
 
         self._results_cache[dv_cache] = imputed_design_vector, objective_values, constraint_values, metric_values
         return copy.copy(self._results_cache[dv_cache])
@@ -213,21 +213,21 @@ class ArchitectingProblem:
         builder.run(openmdao_problem)
         if self.print_results:
             builder.print_results(openmdao_problem)
-        builder.view_n2(openmdao_problem, show_browser=True)
+        builder.view_n2(openmdao_problem, show_browser=False)
         return builder.get_metrics(openmdao_problem)
 
-    def extract_metrics(self, results: OperatingMetricsMap) -> Tuple[List[float], List[float], List[float]]:
+    def extract_metrics(self, results: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Tuple[List[float], List[float], List[float]]:
 
         objective_values = []
         for i, metric in enumerate(self.objectives):
-            objective_values += list(metric.extract_obj(self.analysis_problem, results))
+            objective_values += list(metric.extract_obj(self.analysis_problem, results, architecture))
 
         constraint_values = []
         for i, metric in enumerate(self.constraints):
-            constraint_values += list(metric.extract_con(self.analysis_problem, results))
+            constraint_values += list(metric.extract_con(self.analysis_problem, results, architecture))
 
         metric_values = []
         for i, metric in enumerate(self.metrics):
-            metric_values += list(metric.extract_met(self.analysis_problem, results))
+            metric_values += list(metric.extract_met(self.analysis_problem, results, architecture))
 
         return objective_values, constraint_values, metric_values

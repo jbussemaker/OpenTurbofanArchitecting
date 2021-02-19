@@ -16,34 +16,41 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 from typing import *
+from math import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.evaluation.architecture import *
 
-__all__ = ['TSFCMetric']
+__all__ = ['NOxMetric']
 
 
 @dataclass(frozen=False)
-class TSFCMetric(ArchitectingMetric):
-    """Representing the TSFC as design goal or constraint."""
+class NOxMetric(ArchitectingMetric):
+    """Representing the engine weight as design goal or constraint."""
 
-    max_tsfc: float = .15  # [g/kN s], if used as a constraint
+    max_NOx: float = 1  # [kg], if used as a constraint
 
     # Specify the operating condition to extract from, otherwise will take the design condition
     condition: OperatingCondition = None
 
     def get_opt_objectives(self, choices: List[ArchitectingChoice]) -> List[Objective]:
-        return [Objective('tsfc_obj', ObjectiveDirection.MINIMIZE)]
+        return [Objective('NOx_obj', ObjectiveDirection.MINIMIZE)]
 
     def get_opt_constraints(self, choices: List[ArchitectingChoice]) -> List[Constraint]:
-        return [Constraint('tsfc_con', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_tsfc)]
+        return [Constraint('NOx_con', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_NOx)]
 
     def get_opt_metrics(self, choices: List[ArchitectingChoice]) -> List[OutputMetric]:
-        return [OutputMetric('tsfc_met')]
+        return [OutputMetric('NOx_met')]
 
     def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
-        return [self._get_tsfc(analysis_problem, result)]
+        return [self._get_NOx(analysis_problem, result, architecture)]
 
-    def _get_tsfc(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap):
+    def _get_NOx(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
+
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return ops_metrics.tsfc
+        pressure = ops_metrics.p3/10**3  # burner inlet pressure [kPa]
+        temperature = ops_metrics.t3+273.15  # burner inlet temperature [Kelvin]
+
+        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)  # equation from GasTurb
+
+        return NOx/10**3  # (gram NOx)/kN
