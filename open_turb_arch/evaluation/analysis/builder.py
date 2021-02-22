@@ -119,8 +119,14 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
-    t3: float = None  # Compressor exit temperature [degC]
-    p3: float = None  # Compressor exit pressure [Pa]
+    area_jet: float = None  # Outlet area of the jet nozzle [m2]
+    v_jet: float = None  # Outlet velocity of the jet nozzle [m/s]
+    p_atm: float = None  # Atmospheric pressure [Pa]
+    t_atm: float = None  # Atmospheric temperature [degC]
+    p_burner_in: float = None  # Burner inlet pressure [Pa]
+    t_burner_in: float = None  # Burner inlet temperature [degC]
+    p_jet: float = None  # Jet nozzle exit pressure [Pa]
+    t_jet: float = None  # Jet nozzle exit temperature [degC]
 
 
 class ArchitectureCycle(pyc.Cycle):
@@ -303,9 +309,16 @@ class ArchitectureCycle(pyc.Cycle):
         def _float(val):
             return float(np.atleast_1d(val)[0])
 
-        fs_name = '%s.burner.Fl_I' % self.name
-        pressure = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:P'), units=units.PRESSURE, get_remote=None))
-        temperature = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:T'), units=units.TEMPERATURE, get_remote=None))
+        metrics = []
+        for component in ['fc', 'compressor', 'nozzle_core']:
+            fs_name = '%s.%s.Fl_O' % (self.name, component)
+            pressure = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:P'), units=units.PRESSURE, get_remote=None))
+            temperature = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:T'), units=units.TEMPERATURE, get_remote=None))
+            metrics.extend([pressure, temperature])
+            if component == 'nozzle_core':
+                area = _float(problem.get_val('{}:{}'.format(fs_name, 'stat:area'), units=units.AREA, get_remote=None))
+                velocity = _float(problem.get_val('{}:{}'.format(fs_name, 'stat:V'), units=units.VELOCITY, get_remote=None))
+                metrics.extend([area, velocity])
 
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
@@ -314,8 +327,14 @@ class ArchitectureCycle(pyc.Cycle):
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),
-            t3=temperature,
-            p3=pressure
+            area_jet=metrics[6],
+            v_jet=metrics[7],
+            p_atm=metrics[0],
+            t_atm=metrics[1],
+            p_burner_in=metrics[2],
+            t_burner_in=metrics[3],
+            p_jet=metrics[4],
+            t_jet=metrics[5]
         )
 
 

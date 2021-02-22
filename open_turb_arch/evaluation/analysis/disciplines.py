@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from open_turb_arch.evaluation.architecture import *
 from open_turb_arch.evaluation.analysis import *
 
-__all__ = ['Weight', 'Length', 'NOx']
+__all__ = ['Weight', 'Length', 'NOx', 'Noise']
 
 
 @dataclass(frozen=False)
@@ -155,8 +155,8 @@ class NOx:
     @staticmethod
     def check_architecture(ops_metrics: OperatingMetrics):
 
-        pressure = ops_metrics.p3/10**3  # burner inlet pressure [kPa]
-        temperature = ops_metrics.t3+273.15  # burner inlet temperature [K]
+        pressure = ops_metrics.p_burner_in/10**3  # burner inlet pressure [kPa]
+        temperature = ops_metrics.t_burner_in+273.15  # burner inlet temperature [K]
 
         return pressure, temperature
 
@@ -166,3 +166,35 @@ class NOx:
         NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)  # equation from GasTurb
 
         return NOx/10**3  # (gram NOx)/kN
+
+
+@dataclass(frozen=False)
+class Noise:
+    """Calculates the NOx emissions of the aircraft engine."""
+
+    ops_metrics: OperatingMetrics
+    architecture: TurbofanArchitecture
+
+    @staticmethod
+    def check_architecture(ops_metrics: OperatingMetrics):
+
+        area_jet = ops_metrics.area_jet  # outlet area of the jet nozzle [m2]
+        v_jet = ops_metrics.v_jet  # outlet velocity of the jet nozzle [m/s]
+        p_atm = ops_metrics.p_atm  # atmospheric pressure [Pa]
+        t_atm = ops_metrics.t_atm+273.15  # atmospheric temperature [K]
+        p_jet = ops_metrics.p_jet  # jet nozzle exit pressure [Pa]
+        t_jet = ops_metrics.t_jet+273.15  # jet nozzle exit temperature [K]
+
+        return area_jet, v_jet, p_atm, t_atm, p_jet, t_jet
+
+    def noise_calculation(self, ops_metrics):
+
+        area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics)
+        c_atm = sqrt(1.4*287.05*t_atm)
+        rho_atm = p_atm/(287.05*t_atm)
+        rho_jet = p_jet/(287.05*p_jet)
+
+        OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
+                       + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)  # equation from NASA
+
+        return OASPL_nozzle  # dB

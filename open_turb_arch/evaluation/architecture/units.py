@@ -24,3 +24,6 @@ RPM = 'rpm'
 POWER = 'W'
 PRESSURE = 'Pa'
 HP = 'hp'
+AREA = 'm*m'
+VELOCITY = 'm/s'
+
