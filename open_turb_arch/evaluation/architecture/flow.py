@@ -124,12 +124,10 @@ class Mixer(ArchElement):
 @dataclass(frozen=False)
 class BleedInter(ArchElement):
     target: ArchElement = None
-    target_bleed: str = None
+    target_bleed: List[str] = field(default_factory=lambda: [])
     mach: float = .3  # Reference Mach number for loss calculations
-    source_frac_w: float = 0.05
-    # source_frac_p: float = 1.0
-    # source_frac_work: float = 1.0
-    target_frac_p: float = 1.0
+    source_frac_w: List[float] = field(default_factory=lambda: [])
+    target_frac_p: float = 0.5
     fuel_in_air: bool = False
     bleed_names: List[str] = field(default_factory=lambda: [])
 
@@ -139,22 +137,16 @@ class BleedInter(ArchElement):
         cycle.pyc_add_element(self.name, el)
 
     def connect(self, cycle: pyc.Cycle):
-        if self.target is None:
-            cycle.pyc_connect_flow(self.name+'.Fl_O', 'fc.Fl_I', connect_w=False)
-        else:
-            self._connect_flow_target(cycle, self.target)
-            for bleed_name in self.bleed_names:
-                cycle.pyc_connect_flow('%s.%s' % (self.name, bleed_name), '%s.%s' % (self.target_bleed, bleed_name), connect_stat=False)
+        self._connect_flow_target(cycle, self.target)
+        for i, bleed_name in enumerate(self.bleed_names):
+            if 'atmos' not in bleed_name:
+                cycle.pyc_connect_flow('%s.%s' % (self.name, bleed_name), '%s.%s' % (self.target_bleed[i], bleed_name), connect_stat=False)
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
-        if self.target is None:
-            pass
-        else:
-            for bleed_name in self.bleed_names:
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, bleed_name) + ':frac_W', self.source_frac_w)
-                # mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, i)+':frac_P', self.source_frac_P)
-                # mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, i)+':frac_work', self.source_frac_work)
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target_bleed, bleed_name) + ':frac_P', self.target_frac_p)
+        for i, bleed_name in enumerate(self.bleed_names):
+            mp_cycle.pyc_add_cycle_param('%s.%s' % (self.name, bleed_name) + ':frac_W', self.source_frac_w[i])
+            if 'atmos' not in bleed_name:
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target_bleed[i], bleed_name) + ':frac_P', self.target_frac_p)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
@@ -163,9 +155,9 @@ class BleedInter(ArchElement):
 @dataclass(frozen=False)
 class BleedIntra(ArchElement):
     source: ArchElement = None
-    target: ArchElement = None
+    target: List[str] = field(default_factory=lambda: [])
     mach: float = .3  # Reference Mach number for loss calculations
-    source_frac_w: float = 0.05
+    source_frac_w: List[float] = field(default_factory=lambda: [])
     source_frac_p: float = 1.0
     source_frac_work: float = 1.0
     target_frac_p: float = 1.0
@@ -176,21 +168,17 @@ class BleedIntra(ArchElement):
         pass
 
     def connect(self, cycle: pyc.Cycle):
-        if self.target is None:
-            cycle.pyc_connect_flow(self.name+'.Fl_O', 'fc.Fl_I', connect_w=False)
-        else:
-            for bleed_name in self.bleed_names:
-                cycle.pyc_connect_flow('%s.%s' % (self.source.name, bleed_name), '%s.%s' % (self.target.name, bleed_name), connect_stat=False)
+        for i, bleed_name in enumerate(self.bleed_names):
+            if 'atmos' not in bleed_name:
+                cycle.pyc_connect_flow('%s.%s' % (self.source.name, bleed_name), '%s.%s' % (self.target[i], bleed_name), connect_stat=False)
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
-        if self.target is None:
-            pass
-        else:
-            for bleed_name in self.bleed_names:
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_W', self.source_frac_w)          # bleed mass flow fraction (W_bld/W_in)
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_P', self.source_frac_p)          # bleed pressure fraction ((P_bld-P_in)/(P_out-P_in))
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_work', self.source_frac_work)       # bleed work fraction ((h_bld-h_in)/(h_out-h_in))
-                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target.name, bleed_name) + ':frac_P', self.target_frac_p)
+        for i, bleed_name in enumerate(self.bleed_names):
+            mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_W', self.source_frac_w[i])          # bleed mass flow fraction (W_bld/W_in)
+            mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_P', self.source_frac_p)          # bleed pressure fraction ((P_bld-P_in)/(P_out-P_in))
+            mp_cycle.pyc_add_cycle_param('%s.%s' % (self.source.name, bleed_name) + ':frac_work', self.source_frac_work)       # bleed work fraction ((h_bld-h_in)/(h_out-h_in))
+            if 'atmos' not in bleed_name:
+                mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target[i], bleed_name) + ':frac_P', self.target_frac_p)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         # mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
