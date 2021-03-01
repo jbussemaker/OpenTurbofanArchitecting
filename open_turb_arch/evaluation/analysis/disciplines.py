@@ -26,7 +26,8 @@ __all__ = ['Weight', 'Length', 'NOx', 'Noise']
 
 @dataclass(frozen=False)
 class Weight:
-    """Calculates the weight of the aircraft engine."""
+    """Calculates the weight of the aircraft engine. Equations are taken from Design Methodologies
+     for Aerodynamics, Structures, Weight, and Thermodynamic Cycles (MIT, 2010)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -69,18 +70,18 @@ class Weight:
         weight = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
 
         # Add weight changes based on components
-        if len(architecture.get_elements_by_type(Burner)) != 1:     # ITB
+        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
             weight *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
 
-        if not fan_present:     # Turbojet
+        if not fan_present:  # Turbojet
             weight *= 0.75
             if len(architecture.get_elements_by_type(Compressor)) != 1:  # Multiple shafts
                 weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-1)
-        else:       # Turbofan
+        else:  # Turbofan
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
-        if len(architecture.get_elements_by_type(Mixer)) == 1:      # Mixed nacelle
+        if len(architecture.get_elements_by_type(Mixer)) == 1:  # Mixed nacelle
             weight *= 1.1
 
         return weight
@@ -88,7 +89,8 @@ class Weight:
 
 @dataclass(frozen=False)
 class Length:
-    """Calculates the length of the aircraft engine."""
+    """Calculates the length of the aircraft engine. Equations are taken from Design Methodologies
+     for Aerodynamics, Structures, Weight, and Thermodynamic Cycles (MIT, 2010)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -131,14 +133,14 @@ class Length:
         length = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)*0.0254
 
         # Add length changes based on components
-        if len(architecture.get_elements_by_type(Burner)) != 1:     # ITB
+        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
             length *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
 
-        if not fan_present:     # Turbojet
+        if not fan_present:  # Turbojet
             length *= 0.75
             if len(architecture.get_elements_by_type(Compressor)) != 1:  # Multiple shafts
                 length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-1)
-        elif fan_present:       # Turbofan
+        else:  # Turbofan
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
@@ -147,7 +149,8 @@ class Length:
 
 @dataclass(frozen=False)
 class NOx:
-    """Calculates the NOx emissions of the aircraft engine."""
+    """Calculates the NOx emissions of the aircraft engine. Equations are taken from GasTurb 13
+    Design and Off-Design Performance of Gas Turbines (GasTurb GmbH, 2018)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -155,6 +158,7 @@ class NOx:
     @staticmethod
     def check_architecture(ops_metrics: OperatingMetrics):
 
+        # Get pressure and temperature from operating metrics
         pressure = ops_metrics.p_burner_in/10**3  # burner inlet pressure [kPa]
         temperature = ops_metrics.t_burner_in+273.15  # burner inlet temperature [K]
 
@@ -163,14 +167,17 @@ class NOx:
     def NOx_calculation(self, ops_metrics):
 
         pressure, temperature = self.check_architecture(ops_metrics)
-        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)  # equation from GasTurb
+
+        # Calculate NOx with GasTurb equation
+        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)
 
         return NOx/10**3  # (gram NOx)/kN
 
 
 @dataclass(frozen=False)
 class Noise:
-    """Calculates the NOx emissions of the aircraft engine."""
+    """Calculates the Noise emissions of the aircraft engine. Equations are taken from Interim
+    Prediction Method for Jet Noise (Stone, 1974)"""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -178,6 +185,7 @@ class Noise:
     @staticmethod
     def check_architecture(ops_metrics: OperatingMetrics):
 
+        # Get necessary elements from operating metrics
         area_jet = ops_metrics.area_jet  # outlet area of the jet nozzle [m2]
         v_jet = ops_metrics.v_jet  # outlet velocity of the jet nozzle [m/s]
         p_atm = ops_metrics.p_atm  # atmospheric pressure [Pa]
@@ -194,7 +202,8 @@ class Noise:
         rho_atm = p_atm/(287.05*t_atm)
         rho_jet = p_jet/(287.05*p_jet)
 
+        # Calculate noise with Stone equation
         OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
-                       + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)  # equation from NASA
+                       + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)
 
         return OASPL_nozzle  # dB
