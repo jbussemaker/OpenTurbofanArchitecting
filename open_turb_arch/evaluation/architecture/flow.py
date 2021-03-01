@@ -127,7 +127,7 @@ class BleedInter(ArchElement):
     target_bleed: List[str] = field(default_factory=lambda: [])
     mach: float = .3  # Reference Mach number for loss calculations
     source_frac_w: List[float] = field(default_factory=lambda: [])
-    target_frac_p: float = 0.5
+    target_frac_p: float = 1.0
     fuel_in_air: bool = False
     bleed_names: List[str] = field(default_factory=lambda: [])
 
