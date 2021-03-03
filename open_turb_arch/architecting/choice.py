@@ -19,8 +19,8 @@ from typing import *
 from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.architecture import TurbofanArchitecture
 
-__all__ = ['ArchitectingChoice', 'DesignVariable', 'ContinuousDesignVariable', 'IntDesignVariableType',
-           'IntegerDesignVariable', 'DecodedDesignVector', 'TurbofanArchitecture', 'DecodedValue']
+__all__ = ['ArchitectingChoice', 'DesignVariable', 'ContinuousDesignVariable', 'DiscreteDesignVariableType',
+           'DiscreteDesignVariable', 'DecodedDesignVector', 'TurbofanArchitecture', 'DecodedValue']
 
 
 class ArchitectingChoice:

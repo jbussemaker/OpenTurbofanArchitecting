@@ -47,7 +47,7 @@ def test_des_vars(fan_an_problem):
     problem = _get_problem(fan_an_problem, FanChoice())
     assert len(problem.opt_des_vars) == 3
     assert len(problem.free_opt_des_vars) == 3
-    assert isinstance(problem.opt_des_vars[0], IntegerDesignVariable)
+    assert isinstance(problem.opt_des_vars[0], DiscreteDesignVariable)
     assert isinstance(problem.opt_des_vars[1], ContinuousDesignVariable)
     assert isinstance(problem.opt_des_vars[2], ContinuousDesignVariable)
 

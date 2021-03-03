@@ -22,7 +22,7 @@ from enum import Enum
 from dataclasses import dataclass
 from open_turb_arch.evaluation.analysis import *
 
-__all__ = ['DesignVariable', 'ContinuousDesignVariable', 'IntDesignVariableType', 'IntegerDesignVariable',
+__all__ = ['DesignVariable', 'ContinuousDesignVariable', 'DiscreteDesignVariableType', 'DiscreteDesignVariable',
            'OutputMetric', 'ObjectiveDirection', 'Objective', 'ConstraintDirection', 'Constraint',
            'DesignVector', 'EncodedValue', 'DecodedValue', 'DecodedDesignVector', 'OperatingMetricsMap',
            'AnalysisProblem', 'OperatingCondition', 'DesignCondition', 'EvaluateCondition']
@@ -94,14 +94,14 @@ class ContinuousDesignVariable(DesignVariable):
             yield from values
 
 
-class IntDesignVariableType(Enum):
-    DISCRETE = 1
-    CATEGORICAL = 2
+class DiscreteDesignVariableType(Enum):
+    INTEGER = 1  # Ordering and differences make sense
+    CATEGORICAL = 2  # No notion of ordering or differences
 
 
 @dataclass
-class IntegerDesignVariable(DesignVariable):
-    type: IntDesignVariableType
+class DiscreteDesignVariable(DesignVariable):
+    type: DiscreteDesignVariableType
     values: list
     fixed_value: Any = None  # The fixed VALUE (should be in the values list!)
 
