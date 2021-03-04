@@ -124,12 +124,13 @@ class OperatingMetrics:
 class ArchitectureCycle(pyc.Cycle):
     """A cycle evaluating the architecture for a specific operating condition."""
 
-    def __init__(self, architecture: TurbofanArchitecture, condition: OperatingCondition):
+    def __init__(self, architecture: TurbofanArchitecture, condition: OperatingCondition, max_iter=20):
         design = isinstance(condition, DesignCondition)
         super(ArchitectureCycle, self).__init__(design=design)
 
         self.architecture: TurbofanArchitecture = architecture
         self.condition: OperatingCondition = condition
+        self._max_iter = max_iter
 
         self._elements = OrderedSet()
 
@@ -223,7 +224,7 @@ class ArchitectureCycle(pyc.Cycle):
         newton.options['atol'] = 1e-8
         newton.options['rtol'] = 1e-8
         newton.options['iprint'] = 2
-        newton.options['maxiter'] = 20
+        newton.options['maxiter'] = self._max_iter
         newton.options['solve_subsystems'] = True
         newton.options['max_sub_solves'] = 100
         newton.options['reraise_child_analysiserror'] = False
@@ -314,12 +315,13 @@ class ArchitectureMultiPointCycle(pyc.MPCycle):
     """A cycle evaluating the architecture at multiple operating conditions."""
 
     def __init__(self, architecture: TurbofanArchitecture, design_condition: DesignCondition,
-                 evaluate_conditions: List[EvaluateCondition] = None):
+                 evaluate_conditions: List[EvaluateCondition] = None, max_iter=20):
         super(ArchitectureMultiPointCycle, self).__init__()
 
         self.architecture: TurbofanArchitecture = architecture
         self.design_condition: DesignCondition = design_condition
         self.evaluate_conditions: List[EvaluateCondition] = evaluate_conditions or []
+        self._max_iter = max_iter
 
         self.balance_connected_des_od = set()
 
@@ -357,7 +359,7 @@ class ArchitectureMultiPointCycle(pyc.MPCycle):
             condition.balancer.connect_des_od(self, self.architecture)
 
     def _get_cycle(self, condition: OperatingCondition) -> ArchitectureCycle:
-        return ArchitectureCycle(self.architecture, condition)
+        return ArchitectureCycle(self.architecture, condition, max_iter=self._max_iter)
 
     def print_results(self, problem: om.Problem, fp=sys.stdout):
         for cycle in self._cycles:
@@ -371,9 +373,10 @@ class CycleBuilder:
     """Builds a pyCycle OpenMDAO Problem that analyzes/sizes the turbofan architecture for the given analysis
     problem."""
 
-    def __init__(self, architecture: TurbofanArchitecture, problem: AnalysisProblem):
+    def __init__(self, architecture: TurbofanArchitecture, problem: AnalysisProblem, max_iter=20):
         self.architecture = architecture
         self.problem = problem
+        self._max_iter = max_iter
         self._mp_cycle: Optional[ArchitectureMultiPointCycle] = None
 
     @property
@@ -399,8 +402,9 @@ class CycleBuilder:
         return problem
 
     def _get_multi_point_cycle(self) -> ArchitectureMultiPointCycle:
-        return ArchitectureMultiPointCycle(self.architecture, self.problem.design_condition,
-                                           evaluate_conditions=self.problem.evaluate_conditions)
+        return ArchitectureMultiPointCycle(
+            self.architecture, self.problem.design_condition, evaluate_conditions=self.problem.evaluate_conditions,
+            max_iter=self._max_iter)
 
     @staticmethod
     def view_n2(problem: om.Problem, **kwargs):
