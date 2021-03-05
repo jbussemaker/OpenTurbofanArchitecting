@@ -44,8 +44,8 @@ class ShaftChoice(ArchitectingChoice):
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
-            IntegerDesignVariable(
-                'number_shafts', type=IntDesignVariableType.DISCRETE, values=[0, 1, 2],
+            DiscreteDesignVariable(
+                'number_shafts', type=DiscreteDesignVariableType.INTEGER, values=[0, 1, 2],
                 fixed_value=self.fixed_add_shafts),
 
             ContinuousDesignVariable(

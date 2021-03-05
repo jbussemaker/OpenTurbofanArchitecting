@@ -32,8 +32,8 @@ class NozzleMixingChoice(ArchitectingChoice):
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
-            IntegerDesignVariable(
-                'include_mixing', type=IntDesignVariableType.CATEGORICAL, values=[False, True],
+            DiscreteDesignVariable(
+                'include_mixing', type=DiscreteDesignVariableType.CATEGORICAL, values=[False, True],
                 fixed_value=self.fix_include_mixing),
         ]
 

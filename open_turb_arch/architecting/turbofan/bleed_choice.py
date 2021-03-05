@@ -85,8 +85,8 @@ class BleedChoice(ArchitectingChoice):
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             # Inter-bleed HPC-burner
-            IntegerDesignVariable(
-                'include_eb_hb_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_eb_hb_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_eb_hb_options),
             ContinuousDesignVariable(
                 'eb_hba_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_hba_frac_w),
@@ -98,8 +98,8 @@ class BleedChoice(ArchitectingChoice):
                 'eb_hbl_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_hbl_frac_w),
 
             # Inter-bleed IPC-HPC
-            IntegerDesignVariable(
-                'include_eb_ih_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_eb_ih_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_eb_ih_options),
             ContinuousDesignVariable(
                 'eb_iha_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_iha_frac_w),
@@ -111,8 +111,8 @@ class BleedChoice(ArchitectingChoice):
                 'eb_ihl_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_ihl_frac_w),
 
             # Inter-bleed LPC-IPC
-            IntegerDesignVariable(
-                'include_eb_li_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_eb_li_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_eb_li_options),
             ContinuousDesignVariable(
                 'eb_lia_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_lia_frac_w),
@@ -124,8 +124,8 @@ class BleedChoice(ArchitectingChoice):
                 'eb_lil_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_lil_frac_w),
 
             # Intra-bleed HPC
-            IntegerDesignVariable(
-                'include_ab_hpc_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_ab_hpc_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_ab_hpc_options),
             ContinuousDesignVariable(
                 'ab_ha_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_ha_frac_w),
@@ -137,8 +137,8 @@ class BleedChoice(ArchitectingChoice):
                 'ab_hl_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_hl_frac_w),
 
             # Intra-bleed IPC
-            IntegerDesignVariable(
-                'include_ab_ipc_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_ab_ipc_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_ab_ipc_options),
             ContinuousDesignVariable(
                 'ab_ia_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_ia_frac_w),
@@ -150,8 +150,8 @@ class BleedChoice(ArchitectingChoice):
                 'ab_il_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_il_frac_w),
 
             # Intra-bleed LPC
-            IntegerDesignVariable(
-                'include_ab_lpc_options', type=IntDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
+            DiscreteDesignVariable(
+                'include_ab_lpc_options', type=DiscreteDesignVariableType.CATEGORICAL, values=list(range(len(self._options))),
                 fixed_value=self.fix_ab_lpc_options),
             ContinuousDesignVariable(
                 'ab_la_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_la_frac_w),
