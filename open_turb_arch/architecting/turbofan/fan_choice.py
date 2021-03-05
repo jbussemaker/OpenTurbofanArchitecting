@@ -39,8 +39,8 @@ class FanChoice(ArchitectingChoice):
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
-            IntegerDesignVariable(
-                'include_fan', type=IntDesignVariableType.CATEGORICAL, values=[False, True],
+            DiscreteDesignVariable(
+                'include_fan', type=DiscreteDesignVariableType.CATEGORICAL, values=[False, True],
                 fixed_value=self.fix_include_fan),
 
             ContinuousDesignVariable(

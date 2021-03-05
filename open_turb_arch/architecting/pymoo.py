@@ -53,7 +53,11 @@ class PymooArchitectingProblem(Problem):
             raise ValueError('No objectives in optimization problem!')
         n_constr = len(problem.opt_constraints)
 
-        xl, xu, self.mask, self.is_int_mask = self._process_des_vars(problem.free_opt_des_vars)
+        xl, xu, self.mask, is_int_mask, is_cat_mask = self._process_des_vars(problem.free_opt_des_vars)
+        self.is_int_mask = np.array(is_int_mask)
+        self.is_cat_mask = np.array(is_cat_mask)
+        self.is_discrete_mask = np.bitwise_or(self.is_int_mask, self.is_cat_mask)
+        self.is_cont_mask = ~self.is_discrete_mask
 
         super(PymooArchitectingProblem, self).__init__(n_vars, n_objs, n_constr, xl=xl, xu=xu)
 
@@ -62,36 +66,50 @@ class PymooArchitectingProblem(Problem):
                         for con in problem.opt_constraints]
 
     def get_repair(self) -> Repair:
-        return ArchitectingProblemRepair(self.is_int_mask)
+        return ArchitectingProblemRepair(self.is_discrete_mask)
 
     @staticmethod
-    def _process_des_vars(des_vars: List[DesignVariable]) -> Tuple[np.ndarray, np.ndarray, list, list]:
+    def _process_des_vars(des_vars: List[DesignVariable]) -> Tuple[np.ndarray, np.ndarray, list, list, list]:
         """Determines: lower bounds, upper, bounds, mask (int or real), is_int_mask (bool)"""
         xl, xu = np.empty((len(des_vars),)), np.empty((len(des_vars),))
         mask = []
         is_int_mask = []
+        is_cat_mask = []
 
         for i, des_var in enumerate(des_vars):
-            if isinstance(des_var, IntegerDesignVariable):
+            if isinstance(des_var, DiscreteDesignVariable):
                 xl[i], xu[i] = 0, len(des_var.values)-1
-                mask.append('int')
-                is_int_mask.append(True)
+
+                if des_var.type == DiscreteDesignVariableType.INTEGER:
+                    mask.append('int')
+                    is_int_mask += [True]
+                    is_cat_mask += [False]
+
+                elif des_var.type == DiscreteDesignVariableType.CATEGORICAL:
+                    mask.append('cat')
+                    is_int_mask += [False]
+                    is_cat_mask += [True]
+
+                else:
+                    raise ValueError('Unknown discrete design variable type!')
+
                 continue
 
             if isinstance(des_var, ContinuousDesignVariable):
                 xl[i], xu[i] = des_var.bounds
                 mask.append('real')
-                is_int_mask.append(False)
+                is_int_mask += [False]
+                is_cat_mask += [False]
                 continue
 
             raise NotImplementedError
 
-        return xl, xu, mask, is_int_mask
+        return xl, xu, mask, is_int_mask, is_cat_mask
 
     def _evaluate(self, x, out, *args, **kwargs):
         # Correct integer design variables
-        is_int_mask = self.is_int_mask
-        x = ArchitectingProblemRepair.correct_x(x, is_int_mask)
+        is_discrete_mask = self.is_discrete_mask
+        x = ArchitectingProblemRepair.correct_x(x, is_discrete_mask)
 
         # Evaluate the architecture
         n = x.shape[0]
@@ -100,7 +118,7 @@ class PymooArchitectingProblem(Problem):
         g_out = np.empty((n, self.n_constr)) if self.n_constr > 0 else None
 
         for i in range(n):
-            x_arch = [int(val) if is_int_mask[j] else float(val) for j, val in enumerate(x[i, :])]
+            x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x[i, :])]
             imputed_design_vector, objectives, constraints, _ = self.problem.evaluate(x_arch)
 
             # Correct directions of objectives to represent minimization
@@ -125,16 +143,16 @@ class PymooArchitectingProblem(Problem):
 class ArchitectingProblemRepair(Repair):
     """Repair operating to make sure that integer variables are actually integers after sampling or mating."""
 
-    def __init__(self, is_int_mask):
+    def __init__(self, is_discrete_mask):
         super(ArchitectingProblemRepair, self).__init__()
 
-        self.is_int_mask = is_int_mask
+        self.is_discrete_mask = is_discrete_mask
 
     def _do(self, problem: Problem, pop: Union[Population, np.ndarray], **kwargs):
         is_array = not isinstance(pop, Population)
         x = pop if is_array else pop.get("X")
 
-        x = self.correct_x(x, self.is_int_mask)
+        x = self.correct_x(x, self.is_discrete_mask)
 
         if is_array:
             return x
@@ -142,7 +160,7 @@ class ArchitectingProblemRepair(Repair):
         return pop
 
     @staticmethod
-    def correct_x(x: np.ndarray, is_int_mask) -> np.ndarray:
+    def correct_x(x: np.ndarray, is_discrete_mask) -> np.ndarray:
         x = np.copy(x)
-        x[:, is_int_mask] = np.round(x[:, is_int_mask].astype(np.float64)).astype(np.int)
+        x[:, is_discrete_mask] = np.round(x[:, is_discrete_mask].astype(np.float64)).astype(np.int)
         return x

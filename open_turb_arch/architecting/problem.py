@@ -33,10 +33,11 @@ class ArchitectingProblem:
 
     def __init__(self, analysis_problem: AnalysisProblem, choices: List[ArchitectingChoice],
                  objectives: List[ArchitectingMetric], constraints: List[ArchitectingMetric] = None,
-                 metrics: List[ArchitectingMetric] = None):
+                 metrics: List[ArchitectingMetric] = None, max_iter=20):
 
         self._an_problem = analysis_problem
-        self.print_results = True
+        self.print_results = False
+        self._max_iter = max_iter
 
         self._choices = sorted(choices, key=lambda choice: choice.get_construction_order())
         self._objectives = objectives
@@ -206,7 +207,7 @@ class ArchitectingProblem:
     def evaluate_architecture(self, architecture: TurbofanArchitecture) -> OperatingMetricsMap:
 
         # Build the pyCycle/OpenMDAO analysis chain
-        builder = CycleBuilder(architecture, self.analysis_problem)
+        builder = CycleBuilder(architecture, self.analysis_problem, max_iter=self._max_iter)
         openmdao_problem = builder.get_problem()
 
         # Run the problem

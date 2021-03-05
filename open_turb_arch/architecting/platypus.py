@@ -59,7 +59,7 @@ class PlatypusArchitectingProblem(Problem):
 
     @staticmethod
     def _get_des_var_type(design_var: DesignVariable) -> Type:
-        if isinstance(design_var, IntegerDesignVariable):
+        if isinstance(design_var, DiscreteDesignVariable):
             return Integer(0, len(design_var.values)-1)
 
         elif isinstance(design_var, ContinuousDesignVariable):

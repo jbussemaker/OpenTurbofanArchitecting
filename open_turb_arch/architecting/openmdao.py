@@ -62,7 +62,7 @@ class ArchitectingProblemComponent(om.ExplicitComponent):
         des_vars = self.problem.free_opt_des_vars
         for i, name in enumerate(self.des_var_names):
             des_var = des_vars[i]
-            if isinstance(des_var, IntegerDesignVariable):
+            if isinstance(des_var, DiscreteDesignVariable):
                 lower, upper = 0, len(des_var.values)-1
                 is_discrete = True
             elif isinstance(des_var, ContinuousDesignVariable):

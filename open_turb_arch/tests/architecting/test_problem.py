@@ -86,9 +86,9 @@ def test_cont_des_var():
 
 
 def test_int_des_var():
-    dv = IntegerDesignVariable('dv', type=IntDesignVariableType.DISCRETE, values=[4, 5, 6, 7])
+    dv = DiscreteDesignVariable('dv', type=DiscreteDesignVariableType.INTEGER, values=[4, 5, 6, 7])
     assert dv.name == 'dv'
-    assert dv.type == IntDesignVariableType.DISCRETE
+    assert dv.type == DiscreteDesignVariableType.INTEGER
     assert not dv.is_fixed
     assert dv.get_imputed_value() == 0
 
@@ -108,12 +108,12 @@ def test_int_des_var():
 
         assert dv.decode(dv.encode(val)) == val
 
-    dv_fixed = IntegerDesignVariable('dv', type=IntDesignVariableType.CATEGORICAL, values=[1, 2, 3], fixed_value=2)
+    dv_fixed = DiscreteDesignVariable('dv', type=DiscreteDesignVariableType.CATEGORICAL, values=[1, 2, 3], fixed_value=2)
     assert dv_fixed.is_fixed
     assert dv_fixed.get_fixed_value() == 2
 
     with pytest.raises(ValueError):
-        IntegerDesignVariable('dv', type=IntDesignVariableType.CATEGORICAL, values=[2, 3, 4], fixed_value=5)\
+        DiscreteDesignVariable('dv', type=DiscreteDesignVariableType.CATEGORICAL, values=[2, 3, 4], fixed_value=5)\
             .get_fixed_value()
 
 
@@ -122,9 +122,9 @@ class DummyChoice(ArchitectingChoice):
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             ContinuousDesignVariable('dv1', bounds=(5., 20.)),
-            IntegerDesignVariable('dv2', type=IntDesignVariableType.DISCRETE, values=[1, 2, 3, 4], fixed_value=3),
-            IntegerDesignVariable('dv3', type=IntDesignVariableType.CATEGORICAL, values=[5, 4, 3]),
-            IntegerDesignVariable('dv4', type=IntDesignVariableType.CATEGORICAL, values=[8, 7, 6]),
+            DiscreteDesignVariable('dv2', type=DiscreteDesignVariableType.INTEGER, values=[1, 2, 3, 4], fixed_value=3),
+            DiscreteDesignVariable('dv3', type=DiscreteDesignVariableType.CATEGORICAL, values=[5, 4, 3]),
+            DiscreteDesignVariable('dv4', type=DiscreteDesignVariableType.INTEGER, values=[8, 7, 6]),
         ]
 
     def get_construction_order(self) -> int:
@@ -200,9 +200,9 @@ def test_problem(an_problem):
 def test_design_vector(an_problem):
     problem = ArchitectingProblem(an_problem, choices=[DummyChoice()], objectives=[DummyMetric()])
     dv1: ContinuousDesignVariable
-    dv2: IntegerDesignVariable
-    dv3: IntegerDesignVariable
-    dv4: IntegerDesignVariable
+    dv2: DiscreteDesignVariable
+    dv3: DiscreteDesignVariable
+    dv4: DiscreteDesignVariable
     dv1, dv2, dv3, dv4 = problem.opt_des_vars
 
     for _ in range(100):
@@ -402,7 +402,7 @@ def test_openmdao_component(an_problem):
     om_prob.final_setup()
 
     cont_x_names = [dv.name for dv in problem.free_opt_des_vars if isinstance(dv, ContinuousDesignVariable)]
-    dis_x_names = [dv.name for dv in problem.free_opt_des_vars if isinstance(dv, IntegerDesignVariable)]
+    dis_x_names = [dv.name for dv in problem.free_opt_des_vars if isinstance(dv, DiscreteDesignVariable)]
     assert len(cont_x_names) > 0
     assert len(dis_x_names) > 0
 
@@ -453,8 +453,11 @@ def test_pymoo_problem(an_problem):
 
     assert list(pymoo_problem.xl) == [5., 0., 0.]
     assert list(pymoo_problem.xu) == [20., 2., 2.]
-    assert pymoo_problem.mask == ['real', 'int', 'int']
-    assert pymoo_problem.is_int_mask == [False, True, True]
+    assert pymoo_problem.mask == ['real', 'cat', 'int']
+    assert np.all(pymoo_problem.is_int_mask == [False, False, True])
+    assert np.all(pymoo_problem.is_cat_mask == [False, True, False])
+    assert np.all(pymoo_problem.is_discrete_mask == [False, True, True])
+    assert np.all(pymoo_problem.is_cont_mask == [True, False, False])
 
     assert pymoo_problem.obj_is_max == [False]
     assert pymoo_problem.con_ref == [(False, .05)]
