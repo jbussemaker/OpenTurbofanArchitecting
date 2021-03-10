@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from open_turb_arch.evaluation.architecture import *
 from open_turb_arch.evaluation.analysis import *
 
-__all__ = ['Weight', 'Length', 'NOx', 'Noise']
+__all__ = ['Weight', 'Length', 'Diameter', 'NOx', 'Noise']
 
 
 @dataclass(frozen=False)
@@ -145,6 +145,53 @@ class Length:
                 length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
         return length
+
+
+@dataclass(frozen=False)
+class Diameter:
+    """Calculates the maximum diameter of the aircraft engine. Equations are taken from Aerospace
+    Design and Systems Engineering Elements I (TU Delft, 2017)."""
+
+    ops_metrics: OperatingMetrics
+    architecture: TurbofanArchitecture
+
+    @staticmethod
+    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+
+        # Check if fan is present
+        fan_present = False
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'fan':
+                fan_present = True
+
+        # Check if separate or mixed nacelle
+        config = 'mixed' if len(architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
+
+        # Get massflow rate and BPR
+        massflow = ops_metrics.mass_flow
+        bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
+
+        # Get necessary elements from operating metrics
+        p_atm = ops_metrics.p_atm  # atmospheric pressure [Pa]
+        t_atm = ops_metrics.t_atm+273.15  # atmospheric temperature [K]
+
+        return config, massflow, bpr, p_atm, t_atm
+
+    def diameter_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
+
+        config, massflow, bpr, p_atm, t_atm = self.check_architecture(ops_metrics, architecture)
+        c_atm = sqrt(1.4*287.05*t_atm)
+        rho_atm = p_atm/(287.05*t_atm)
+
+        # Calculate maximum diameter with TU Delft equation
+        dsdi = 0.05*(1 + 0.1*rho_atm*c_atm/massflow + 3*bpr/(1+bpr))
+        di = 1.65*sqrt((massflow/rho_atm/c_atm+0.005)/(1-dsdi**2))
+        cl, dl = (9.8, 0.05) if config == 'mixed' else (7.8, 0.1)
+        ln = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
+        diameter = di + 0.06*0.65*ln + 0.03
+
+        return diameter  # m
 
 
 @dataclass(frozen=False)
