@@ -195,6 +195,8 @@ class Shaft(ArchElement):
     connections: List[BaseTurboMachinery] = None
     rpm_design: float = 10000.  # Design shaft rotation speed [rpm]
     power_loss: float = 0.  # Fraction of power lost
+    offtake_shaft: bool = False  # Shaft for power offtake
+    power_offtake: float = 0.  # Amount of power offtake
 
     def __post_init__(self):
         self._set_shaft_ref()
@@ -227,6 +229,8 @@ class Shaft(ArchElement):
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_add_cycle_param(self.name+'.fracLoss', self.power_loss)
+        if self.offtake_shaft:
+            mp_cycle.pyc_add_cycle_param(self.name+'.HPX', self.power_offtake, units='W')
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         pass

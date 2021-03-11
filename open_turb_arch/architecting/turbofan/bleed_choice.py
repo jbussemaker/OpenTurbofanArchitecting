@@ -19,6 +19,7 @@ from typing import *
 from itertools import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
@@ -164,10 +165,10 @@ class BleedChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 6    # Executed after the fan_choice
+        return 8
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
+            -> Sequence[Union[bool, DecodedValue]]:
 
         # Check the number of turbines
         turbines = len(architecture.get_elements_by_type(Turbine))
@@ -222,7 +223,7 @@ class BleedChoice(ArchitectingChoice):
                         (has_lp and 'hpt' in ab_lpc_options),
                         (has_lp and 'ipt' in ab_lpc_options),
                         (has_lp and 'lpt' in ab_lpc_options),
-                    ]
+                     ]
 
         # Group the decisions
         decisions_inter = [include_eb_hb_options, include_eb_ih_options, include_eb_li_options]
@@ -350,5 +351,5 @@ class BleedChoice(ArchitectingChoice):
             bleed_names=bleed_names, source_frac_w=adjusted_fractions
         )
 
-        # Add BleedInter to architecture elements
+        # Add BleedIntra to architecture elements
         architecture.elements.insert(architecture.elements.index(compressors[-1-1*number])+1, bleed_intra)

@@ -18,6 +18,7 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
@@ -51,9 +52,9 @@ class FanChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 1
+        return 2
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
 
         # The BPR and FPR design variables are only active if a fan is included

@@ -18,6 +18,7 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
@@ -45,10 +46,10 @@ class GearboxChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 2        # Executed after the fan_choice
+        return 3
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
+            -> Sequence[Union[bool, DecodedValue]]:
 
         # Check if fan is present
         fan_present = False
@@ -70,7 +71,11 @@ class GearboxChoice(ArchitectingChoice):
     def _include_gearbox(architecture: TurbofanArchitecture, gear_ratio: float):
 
         # Find necessary elements
-        fan = architecture.get_elements_by_type(Compressor)[0]
+        fan = None
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'fan':
+                fan = architecture.get_elements_by_type(Compressor)[compressor]
         core_shaft = architecture.get_elements_by_type(Shaft)[0]
 
         # Disconnect fan from LP_shaft

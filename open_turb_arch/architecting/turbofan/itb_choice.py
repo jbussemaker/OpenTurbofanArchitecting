@@ -18,6 +18,7 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
@@ -45,16 +46,16 @@ class ITBChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 5        # Executed after the fan_choice
+        return 7
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[bool]:
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
+            -> Sequence[Union[bool, DecodedValue]]:
 
         # Check if at least 2 turbines is present
         turbines = architecture.get_elements_by_type(Turbine)
         turbines_present = True if len(turbines) >= 2 else False
 
-        # The inter-turbine burner choice is only active if fan is included
+        # The inter-turbine burner choice is only active if multiple turbines present
         include_itb, far = design_vector
         is_active = [turbines_present, (turbines_present and include_itb)]
 
