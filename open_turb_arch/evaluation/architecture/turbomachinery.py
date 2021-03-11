@@ -95,6 +95,9 @@ class Compressor(BaseTurboMachinery):
 class FuelType(Enum):
     JET_A = 'Jet-A(g)'  # Standard jet fuel
     JP_7 = 'JP-7'  # Supersonic
+    H2 = 'H2'  # Innovative
+    CH4 = 'Methane'
+    H2O = 'Water'
 
 
 @dataclass(frozen=False)
