@@ -38,12 +38,15 @@ class Weight:
         # Check whether gearbox is present
         gear = architecture.get_elements_by_type(Gearbox) is not None
 
-        # Check if fan is present
+        # Check if fan and CRTF are present
         fan_present = False
+        crtf_present = False
         compressors = architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan_present = True
+            if compressors[compressor].name == 'crtf':
+                crtf_present = True
 
         # Get massflow rate and OPR
         massflow = ops_metrics.mass_flow
@@ -52,11 +55,11 @@ class Weight:
         # Get BPR
         bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        return fan_present, gear, massflow, opr, bpr
+        return fan_present, crtf_present, gear, massflow, opr, bpr
 
     def weight_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
 
-        fan_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
+        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
 
         # Calculate weight with MIT WATE++ equations
         if not gear:
@@ -81,6 +84,9 @@ class Weight:
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
+        if crtf_present:  # CRTF
+            weight *= 1.2
+
         if len(architecture.get_elements_by_type(Mixer)) == 1:  # Mixed nacelle
             weight *= 1.1
 
@@ -103,10 +109,13 @@ class Length:
 
         # Check if fan is present
         fan_present = False
+        crtf_present = False
         compressors = architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan_present = True
+            if compressors[compressor].name == 'crtf':
+                crtf_present = True
 
         # Get massflow rate and OPR
         massflow = ops_metrics.mass_flow
@@ -115,11 +124,11 @@ class Length:
         # Get BPR
         bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        return fan_present, gear, massflow, opr, bpr
+        return fan_present, crtf_present, gear, massflow, opr, bpr
 
     def length_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
 
-        fan_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
+        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
 
         # Calculate length with MIT WATE++ equations
         if not gear:
@@ -143,6 +152,9 @@ class Length:
         else:  # Turbofan
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
+
+        if crtf_present:  # CRTF
+            length *= 1.1
 
         return length
 
@@ -230,7 +242,14 @@ class Noise:
     architecture: TurbofanArchitecture
 
     @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics):
+    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+
+        # Check if CRTF is present
+        crtf_present = False
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'crtf':
+                crtf_present = True
 
         # Get necessary elements from operating metrics
         area_jet = ops_metrics.area_jet  # outlet area of the jet nozzle [m2]
@@ -240,11 +259,11 @@ class Noise:
         p_jet = ops_metrics.p_jet  # jet nozzle exit pressure [Pa]
         t_jet = ops_metrics.t_jet+273.15  # jet nozzle exit temperature [K]
 
-        return area_jet, v_jet, p_atm, t_atm, p_jet, t_jet
+        return crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet
 
     def noise_calculation(self, ops_metrics):
 
-        area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics)
+        crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics)
         c_atm = sqrt(1.4*287.05*t_atm)
         rho_atm = p_atm/(287.05*t_atm)
         rho_jet = p_jet/(287.05*p_jet)
@@ -252,5 +271,8 @@ class Noise:
         # Calculate noise with Stone equation
         OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
                        + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)
+
+        if crtf_present:  # CRTF
+            OASPL_nozzle -= 3
 
         return OASPL_nozzle  # dB
