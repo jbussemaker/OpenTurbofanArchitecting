@@ -31,17 +31,19 @@ class ShaftChoice(ArchitectingChoice):
 
     fixed_add_shafts: int = None  # Fix the number of added shafts
 
-    fixed_pr_compressor_ip: float = None  # Fix the IP compressor pressure ratio
-    pr_compressor_ip_bounds: Tuple[float, float] = (1, 10)  # IP compressor pressure ratio bounds
+    fixed_opr_core: float = None  # Fix the overall pressure ratio of the core
+    opr_core_bounds: Tuple[float, float] = (1.1, 60)  # Core overall pressure ratio bounds
 
-    fixed_pr_compressor_lp: float = None  # Fix the LP compressor pressure ratio
-    pr_compressor_lp_bounds: Tuple[float, float] = (1, 10)  # LP compressor pressure ratio bounds
+    fixed_pr_compressor_ip: float = None  # Fix the percentage the IP performs from the overall core pressure ratio
+    fixed_pr_compressor_lp: float = None  # Fix the percentage the LP performs from the overall core pressure ratio
 
+    pr_compressor_bounds: Tuple[float, float] = (0.01, 0.99)  # Percentage pressure ratio bounds
+
+    fixed_rpm_shaft_hp: float = None  # Fix the HP shaft rpm
     fixed_rpm_shaft_ip: float = None  # Fix the IP shaft rpm
-    rpm_shaft_ip_bounds: Tuple[float, float] = (1000, 20000)  # IP shaft rpm bounds
-
     fixed_rpm_shaft_lp: float = None  # Fix the LP shaft rpm
-    rpm_shaft_lp_bounds: Tuple[float, float] = (1000, 20000)  # LP shaft rpm bounds
+
+    rpm_shaft_bounds: Tuple[float, float] = (1000, 20000)  # Shaft rpm bounds
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
@@ -50,19 +52,27 @@ class ShaftChoice(ArchitectingChoice):
                 fixed_value=self.fixed_add_shafts),
 
             ContinuousDesignVariable(
-                'pr_compressor_ip', bounds=self.pr_compressor_ip_bounds,
+                'opr_core', bounds=self.opr_core_bounds,
+                fixed_value=self.fixed_opr_core),
+
+            ContinuousDesignVariable(
+                'pr_compressor_ip', bounds=self.pr_compressor_bounds,
                 fixed_value=self.fixed_pr_compressor_ip),
 
             ContinuousDesignVariable(
-                'pr_compressor_lp', bounds=self.pr_compressor_lp_bounds,
+                'pr_compressor_lp', bounds=self.pr_compressor_bounds,
                 fixed_value=self.fixed_pr_compressor_lp),
 
             ContinuousDesignVariable(
-                'rpm_shaft_ip', bounds=self.rpm_shaft_ip_bounds,
+                'rpm_shaft_hp', bounds=self.rpm_shaft_bounds,
+                fixed_value=self.fixed_rpm_shaft_hp),
+
+            ContinuousDesignVariable(
+                'rpm_shaft_ip', bounds=self.rpm_shaft_bounds,
                 fixed_value=self.fixed_rpm_shaft_ip),
 
             ContinuousDesignVariable(
-                'rpm_shaft_lp', bounds=self.rpm_shaft_lp_bounds,
+                'rpm_shaft_lp', bounds=self.rpm_shaft_bounds,
                 fixed_value=self.fixed_rpm_shaft_lp),
         ]
 
@@ -73,59 +83,70 @@ class ShaftChoice(ArchitectingChoice):
             -> Sequence[Union[bool, DecodedValue]]:
 
         # The number of added shafts is always active
-        number_shafts, pr_compressor_ip, pr_compressor_lp, rpm_shaft_ip, rpm_shaft_lp = design_vector
-        is_active = [True, number_shafts >= 1, number_shafts == 2, number_shafts >= 1, number_shafts == 2]
+        number_shafts, opr_core, pr_compressor_ip, pr_compressor_lp, rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp = design_vector
+        rpm_shaft = [rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp]
 
-        pr_compressor = [pr_compressor_ip, pr_compressor_lp]
-        rpm_shaft = [rpm_shaft_ip, rpm_shaft_lp]
-        for shaft in range(0, number_shafts):
-            self._add_shafts(architecture, shaft, pr_compressor[shaft], rpm_shaft[shaft])
+        # Check the pressure ratio percentages
+        pr_compressor = [pr_compressor_ip if number_shafts >= 1 else 0, pr_compressor_lp if number_shafts == 2 else 0]
+        pr_compressor = [1/3, 1/3] if pr_compressor[0]+pr_compressor[1] >= 1 else pr_compressor
+
+        is_active = [True, True, pr_compressor[0], pr_compressor[1], True, number_shafts >= 1, number_shafts == 2]
+
+        self._add_shafts(architecture, number_shafts, opr_core, pr_compressor, rpm_shaft)
 
         return is_active
 
     @staticmethod
-    def _add_shafts(architecture: TurbofanArchitecture, number: int, pr_compressor: float, rpm_shaft: float):
+    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, opr_core: float, pr_compressor: list, rpm_shaft: list):
 
-        # Find necessary elements
-        inlet = architecture.get_elements_by_type(Inlet)[0]
-        compressor = architecture.get_elements_by_type(Compressor)[0]
-        turbine = architecture.get_elements_by_type(Turbine)[number]
-        nozzle = architecture.get_elements_by_type(Nozzle)[0]
-        shaft = architecture.get_elements_by_type(Shaft)[0]
+        # Find the HP compressor and shaft
+        compressor = architecture.get_elements_by_type(Compressor)[-1]
+        shaft = architecture.get_elements_by_type(Shaft)[-1]
 
-        # Define names for added shafts
-        if number == 0:
-            shaft_name = 'ip'
-        elif number == 1:
-            shaft_name = 'lp'
-        else:
-            raise RuntimeError('Unexpected number of shafts %s' % number)
+        # Calculate the pressure ratio of the HP compressor
+        hp_pressure_perc = 1-pr_compressor[0]-pr_compressor[1]
+        compressor.pr = opr_core*hp_pressure_perc
 
-        # Create new elements: compressor, turbine and shaft
-        comp_new = Compressor(
-            name='comp_'+shaft_name, map=CompressorMap.AXI_5,
-            mach=.4578, pr=pr_compressor, eff=.89,
-        )
+        # Adjust the HP shaft rpm
+        shaft.rpm_design = rpm_shaft[0]
 
-        turb_new = Turbine(
-            name='turb_'+shaft_name, map=TurbineMap.LPT_2269,
-            mach=.4578, eff=.89,
-        )
+        for number in range(0, number_shafts):
 
-        shaft_new = Shaft(
-            name='shaft_'+shaft_name, connections=[comp_new, turb_new],
-            rpm_design=rpm_shaft, power_loss=0.,
-        )
+            # Find necessary elements
+            inlet = architecture.get_elements_by_type(Inlet)[0]
+            compressor = architecture.get_elements_by_type(Compressor)[0]
+            turbine = architecture.get_elements_by_type(Turbine)[number]
+            nozzle = architecture.get_elements_by_type(Nozzle)[0]
+            shaft = architecture.get_elements_by_type(Shaft)[0]
 
-        # Insert compressor, turbine and shaft into architecture elements list
-        architecture.elements.insert(architecture.elements.index(compressor), comp_new)
-        architecture.elements.insert(architecture.elements.index(turbine)+1, turb_new)
-        architecture.elements.insert(architecture.elements.index(shaft), shaft_new)
+            # Define names for added shafts
+            shaft_name = 'ip' if number == 0 else 'lp'
 
-        # Reroute flow from inlet and new compressor
-        inlet.target = comp_new
-        comp_new.target = compressor
+            # Create new elements: compressor, turbine and shaft
+            comp_new = Compressor(
+                name='comp_'+shaft_name, map=CompressorMap.AXI_5,
+                mach=compressor.mach, pr=opr_core*pr_compressor[number], eff=compressor.eff,
+            )
 
-        # Reroute flow to new turbine and nozzle
-        turbine.target = turb_new
-        turb_new.target = nozzle
+            turb_new = Turbine(
+                name='turb_'+shaft_name, map=TurbineMap.LPT_2269,
+                mach=compressor.mach, eff=compressor.eff,
+            )
+
+            shaft_new = Shaft(
+                name='shaft_'+shaft_name, connections=[comp_new, turb_new],
+                rpm_design=rpm_shaft[number+1], power_loss=0.,
+            )
+
+            # Insert compressor, turbine and shaft into architecture elements list
+            architecture.elements.insert(architecture.elements.index(compressor), comp_new)
+            architecture.elements.insert(architecture.elements.index(turbine)+1, turb_new)
+            architecture.elements.insert(architecture.elements.index(shaft), shaft_new)
+
+            # Reroute flow from inlet and new compressor
+            inlet.target = comp_new
+            comp_new.target = compressor
+
+            # Reroute flow to new turbine and nozzle
+            turbine.target = turb_new
+            turb_new.target = nozzle
