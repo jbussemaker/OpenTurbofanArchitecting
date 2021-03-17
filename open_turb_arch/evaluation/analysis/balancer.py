@@ -31,6 +31,7 @@ class DesignBalancer(Balancer):
     """
     Balancer for the design point:
     - Uses inlet mass flow rate to tune the required thrust
+    - Uses compressor bleed fraction to tune the extraction bleed
     - Uses burner fuel-to-air ratio to tune the turbine inlet temperature
     - Uses turbine pressure ratio to balance shaft net power (should be 0)
     """
@@ -40,15 +41,18 @@ class DesignBalancer(Balancer):
             init_mass_flow: float = 80.,  # kg/s
             init_far: float = .017,
             init_turbine_pr: float = 2.,
+            init_extraction_bleed_frac: float = 0.02,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_far = init_far
         self._init_turbine_pr = init_turbine_pr
+        self._init_extraction_bleed_frac = init_extraction_bleed_frac
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
 
         self._balance_thrust(cycle, balance)
+        self._balance_extraction_bleed(cycle, balance, architecture)
         self._balance_turbine_temp(cycle, balance)
         self._balance_shaft_power(cycle, balance, architecture)
 
@@ -60,10 +64,22 @@ class DesignBalancer(Balancer):
         balance.add_balance('W', units=units.MASS_FLOW, eq_units='lbf', val=self._init_mass_flow, rhs_name='Fn_target')
 
         # Use the balance parameter to control the inlet mass flow rate (to size the area)
-        cycle.connect(balance.name +'.W', cycle.inlet_el_name + '.Fl_I:stat:W')
+        cycle.connect(balance.name+'.W', cycle.inlet_el_name+'.Fl_I:stat:W')
 
         # To force the overall net thrust equal to Fn_target (rhs name; assigned in OperatingCondition.set_values)
         cycle.connect('perf.Fn', balance.name+'.lhs:W')
+
+    def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Add a balance for extraction bleed
+        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
+
+        # Extraction bleed is only active for the selected compressor
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                # Use the balance parameter to control the extraction bleed fraction from the compressor
+                cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
+                # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
+                cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
 
     def _balance_turbine_temp(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
@@ -104,6 +120,7 @@ class OffDesignBalancer(Balancer):
     """
     Balancer for the off-design points:
     - Uses burner fuel-to-air ratio to tune the required thrust
+    - Uses compressor bleed fraction to tune the extraction bleed
     - Uses inlet mass flow rate to sync inlet area with design point
     - Uses splitter BPR to sync bypass nozzle area with design point
     - Uses shaft rpm to balance shaft net power (should be 0)
@@ -115,16 +132,19 @@ class OffDesignBalancer(Balancer):
             init_bpr: float = 5.,
             init_far: float = .017,
             init_shaft_rpm: float = 5000.,  # rpm
+            init_extraction_bleed_frac: float = 0.02,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_bpr = init_bpr
         self._init_far = init_far
         self._init_shaft_rpm = init_shaft_rpm
+        self._init_extraction_bleed_frac = init_extraction_bleed_frac
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
 
         self._balance_thrust(cycle, balance)
+        self._balance_extraction_bleed(cycle, balance, architecture)
         self._balance_areas(cycle, balance, architecture)
         self._balance_shaft_power(cycle, balance, architecture)
 
@@ -150,6 +170,18 @@ class OffDesignBalancer(Balancer):
 
         # To force the overall net thrust equal to Fn_target (rhs name; assigned in OperatingCondition.set_values)
         cycle.connect('perf.Fn', balance.name+'.lhs:FAR')
+
+    def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Add a balance for extraction bleed
+        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='bleed_target')
+
+        # Extraction bleed is only active for the selected compressor
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                # Use the balance parameter to control the extraction bleed fraction from the compressor
+                cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
+                # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
+                cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
 
     @staticmethod
     def _iter_nozzle_balances(architecture: TurbofanArchitecture):

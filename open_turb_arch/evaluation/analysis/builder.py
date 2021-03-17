@@ -51,11 +51,12 @@ class OperatingCondition:
 
     def set_values(self, problem: om.Problem):
         problem.set_val(self.name+'.fc.MN', self.mach)
-        problem.set_val(self.name +'.fc.alt', self.alt, units=units.ALTITUDE)
-        problem.set_val(self.name +'.balance.Fn_target', self.thrust, units=units.FORCE)
+        problem.set_val(self.name+'.fc.alt', self.alt, units=units.ALTITUDE)
+        problem.set_val(self.name+'.balance.Fn_target', self.thrust, units=units.FORCE)
+        problem.set_val(self.name+'.balance.extraction_bleed_target', self.bleed_offtake, units=units.MASS_FLOW)
 
         if self.d_temp != 0:
-            problem.set_val(self.name +'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
+            problem.set_val(self.name+'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -73,7 +74,7 @@ class DesignCondition(OperatingCondition):
 
         if self.turbine_in_temp == 0.:
             raise ValueError('Must set a target turbine inlet temperature for the design condition')
-        problem.set_val(self.name +'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
+        problem.set_val(self.name+'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
 
     def _get_name(self) -> str:
         return 'design'
@@ -144,7 +145,7 @@ class ArchitectureCycle(pyc.Cycle):
 
     def initialize(self):
         self.options.declare('design', default=True,
-                              desc='Switch between on-design and off-design calculation.')
+                             desc='Switch between on-design and off-design calculation.')
 
     @property
     def is_design_condition(self):

@@ -65,6 +65,7 @@ class Compressor(BaseTurboMachinery):
     pr: float = 5.  # Compression pressure ratio
     eff: float = 1.  # Enthalpy rise efficiency (<1 is less efficient)
     bleed_names: List[str] = field(default_factory=lambda: [])
+    offtake_bleed: bool = None  # Compressor for extraction bleed offtake
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         if self.shaft is None:

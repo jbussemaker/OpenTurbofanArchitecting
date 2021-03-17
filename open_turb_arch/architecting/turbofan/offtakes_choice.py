@@ -53,24 +53,28 @@ class OfftakesChoice(ArchitectingChoice):
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
 
-        # Find the number of shafts present
-        shafts = len(architecture.get_elements_by_type(Shaft))
-
         # The power and bleed offtake locations are true if shaft choice is smaller then or equal to then the number of shafts in architecture
         power_offtake_location, bleed_offtake_location = design_vector
         is_active = [True, True]
 
         # Add offtakes
         self._power_location(architecture, analysis_problem, power_offtake_location)
-        # self._bleed_location(architecture, analysis_problem, bleed_offtake_location)
+        self._bleed_location(architecture, bleed_offtake_location)
 
         return is_active
 
     @staticmethod
     def _power_location(architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, shaft_number: int):
 
+        # Find fan shaft
+        special_shafts = 0
+        shafts = architecture.get_elements_by_type(Shaft)
+        for shaft in range(len(shafts)):
+            if shafts[shaft].name == 'fan_shaft':
+                special_shafts += 1
+
         # Find the required shaft for power offtake
-        shafts = len(architecture.get_elements_by_type(Shaft))
+        shafts = len(architecture.get_elements_by_type(Shaft))-special_shafts
         if shafts >= shaft_number+1:  # Feasible shaft selection
             shaft = architecture.get_elements_by_type(Shaft)[-1-1*shaft_number]
         else:  # Unfeasible shaft selection: choose closest one
@@ -81,38 +85,28 @@ class OfftakesChoice(ArchitectingChoice):
         shaft.power_offtake = analysis_problem.design_condition.power_offtake
 
     @staticmethod
-    def _bleed_location(architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, compressor_number: int):
+    def _bleed_location(architecture: TurbofanArchitecture, compressor_number: int):
 
-        burner = architecture.get_elements_by_type(Burner)[0]
+        # Find fan and CRTF
+        special_compressors = 0
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'fan' or compressors[compressor].name == 'crtf':
+                special_compressors += 1
 
         # Find the required shaft for power offtake
-        compressors = len(architecture.get_elements_by_type(Compressor))
+        compressors = len(architecture.get_elements_by_type(Compressor))-special_compressors
         if compressors >= compressor_number+1:  # Feasible compressor selection
-            source = architecture.get_elements_by_type(Compressor)[-1-1*compressor_number]
-            target = source.target if source.name != 'compressor' else burner
+            compressor = architecture.get_elements_by_type(Compressor)[-1-1*compressor_number]
         else:  # Unfeasible compressor selection: choose closest one
-            source = architecture.get_elements_by_type(Compressor)[-1*compressors]
-            target = source.target if source.name != 'compressor' else burner
+            compressor = architecture.get_elements_by_type(Compressor)[-1*compressors]
 
-        # # Add bleed offtake to architecture
-        # bleed_offtake = BleedInter(
-        #     name='bleed_offtake', target=target, bleed_names=['bleed_offtake']
-        # )
-        #
-        # # Reroute flows
-        # source.target = bleed_offtake
-        #
-        # # Add BleedInter to architecture elements
-        # architecture.elements.insert(architecture.elements.index(source)+1, bleed_offtake)
+        # Add the bleed offtake to the compressor
+        bleed_offtake = BleedIntra(
+            name='bleed_offtake', source=compressor, bleed_names=['bleed_offtake_atmos'], source_frac_w=[0.02],
+        )
+        compressor.offtake_bleed = True
+        compressor.bleed_names.append('bleed_offtake_atmos')
 
-        source.offtake_bleed = True
-        source.bleed_names.append('bleed_offtake')
-        source.bleed_frac_w = 0.05
-
-        # # Add the bleed offtake to the compressor
-        # bleed_offtake = BleedIntra(
-        #     name='bleed_offtake', source=compressor, bleed_names=['bleed_offtake'],
-        # )
-        #
-        # # Add BleedIntra to architecture elements
-        # architecture.elements.insert(architecture.elements.index(compressor), bleed_offtake)
+        # Add BleedIntra to architecture elements
+        architecture.elements.insert(architecture.elements.index(compressor), bleed_offtake)
