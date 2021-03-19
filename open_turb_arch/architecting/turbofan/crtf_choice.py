@@ -72,9 +72,10 @@ class CRTFChoice(ArchitectingChoice):
                 fan = architecture.get_elements_by_type(Compressor)[compressor]
 
         # Create new element: CRTF
+        # Efficiency based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
         crtf = Compressor(
             name='crtf', map=fan.map,
-            mach=fan.mach, pr=fan.pr, eff=fan.eff
+            mach=fan.mach, pr=fan.pr, eff=min(1.05*fan.eff, 0.95)
         )
 
         # Reroute flows

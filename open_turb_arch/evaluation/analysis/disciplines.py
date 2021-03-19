@@ -57,7 +57,7 @@ class Weight:
 
         return fan_present, crtf_present, gear, massflow, opr, bpr
 
-    def weight_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
+    def weight_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
         fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
 
@@ -84,8 +84,9 @@ class Weight:
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
-        if crtf_present:  # CRTF
-            weight *= 1.2
+        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
+        if crtf_present:
+            weight *= 1.1
 
         if len(architecture.get_elements_by_type(Mixer)) == 1:  # Mixed nacelle
             weight *= 1.1
@@ -126,7 +127,7 @@ class Length:
 
         return fan_present, crtf_present, gear, massflow, opr, bpr
 
-    def length_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
+    def length_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
         fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
 
@@ -153,7 +154,8 @@ class Length:
             if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
                 length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
 
-        if crtf_present:  # CRTF
+        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
+        if crtf_present:
             length *= 1.1
 
         return length
@@ -190,7 +192,7 @@ class Diameter:
 
         return config, massflow, bpr, p_atm, t_atm
 
-    def diameter_calculation(self, ops_metrics, architecture: TurbofanArchitecture):
+    def diameter_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
         config, massflow, bpr, p_atm, t_atm = self.check_architecture(ops_metrics, architecture)
         c_atm = sqrt(1.4*287.05*t_atm)
@@ -223,7 +225,7 @@ class NOx:
 
         return pressure, temperature
 
-    def NOx_calculation(self, ops_metrics):
+    def NOx_calculation(self, ops_metrics: OperatingMetrics):
 
         pressure, temperature = self.check_architecture(ops_metrics)
 
@@ -261,9 +263,9 @@ class Noise:
 
         return crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet
 
-    def noise_calculation(self, ops_metrics):
+    def noise_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
-        crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics)
+        crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics, architecture)
         c_atm = sqrt(1.4*287.05*t_atm)
         rho_atm = p_atm/(287.05*t_atm)
         rho_jet = p_jet/(287.05*p_jet)
@@ -272,7 +274,8 @@ class Noise:
         OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
                        + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)
 
-        if crtf_present:  # CRTF
-            OASPL_nozzle -= 3
+        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
+        if crtf_present:
+            OASPL_nozzle -= 5
 
         return OASPL_nozzle  # dB
