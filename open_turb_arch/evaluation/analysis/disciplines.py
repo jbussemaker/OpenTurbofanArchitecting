@@ -26,8 +26,10 @@ __all__ = ['Weight', 'Length', 'Diameter', 'NOx', 'Noise']
 
 @dataclass(frozen=False)
 class Weight:
-    """Calculates the weight of the aircraft engine. Equations are taken from Design Methodologies
-     for Aerodynamics, Structures, Weight, and Thermodynamic Cycles (MIT, 2010)."""
+    """Calculates the weight of the integrated aircraft engine. Equations are taken from Design Methodologies
+     for Aerodynamics, Structures, Weight, and Thermodynamic Cycles (Greitzer & Slater, 2010) and Analysis of
+     Turbofan Propulsion System Weight and Dimensions (Waters & Schairer, 1977) and Advanced Aircraft Design:
+     Conceptual Design, Analysis and Optimization of Subsonic Civil Airplanes (Torenbeek, 2013)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -48,11 +50,9 @@ class Weight:
             if compressors[compressor].name == 'crtf':
                 crtf_present = True
 
-        # Get massflow rate and OPR
+        # Get massflow rate, OPR and BPR
         massflow = ops_metrics.mass_flow
         opr = ops_metrics.opr
-
-        # Get BPR
         bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
         return fan_present, crtf_present, gear, massflow, opr, bpr
@@ -61,43 +61,58 @@ class Weight:
 
         fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
 
-        # Calculate weight with MIT WATE++ equations
-        if not gear:
+        # Calculate engine weight with MIT WATE++ equations
+        if not gear:  # Gearbox present
             a = (1.809*10)*bpr**2 + (4.769*10**2)*bpr + 701.3
             b = (1.077*10**(-3))*bpr**2 - (3.716*10**(-2))*bpr + 1.190
             c = (-1.058*10**(-2))*bpr + 0.326
-        else:
+        else:  # No gearbox present
             a = (-6.590*10**(-1))*bpr**2 + (2.928*10**2)*bpr + 1915
             b = (6.784*10**(-5))*bpr**2 - (6.488*10**(-3))*bpr + 1.061
             c = (-1.969*10**(-3))*bpr + 0.0711
-        weight = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
+        weight_engine = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
 
-        # Add weight changes based on components
-        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
-            weight *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
-
+        # Add engine weight changes based on MIT component weights, unless mentioned otherwise
         if not fan_present:  # Turbojet
-            weight *= 0.75
-            if len(architecture.get_elements_by_type(Compressor)) != 1:  # Multiple shafts
-                weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-1)
-        else:  # Turbofan
-            if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
-                weight *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
-
-        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
-        if crtf_present:
-            weight *= 1.1
-
+            weight_engine *= 0.75
+        if len(architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
+            weight_engine *= 1.1**(len(architecture.get_elements_by_type(Turbine))-1)
+        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
+            weight_engine *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
+        if crtf_present:  # CRTF
+            weight_engine *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
         if len(architecture.get_elements_by_type(Mixer)) == 1:  # Mixed nacelle
-            weight *= 1.1
+            weight_engine *= 1.1
 
-        return weight
+        # Get nacelle lengths and diameters
+        l_fancowl = Length.length_calculation(Length, ops_metrics, architecture)[1]
+        l_gg = Length.length_calculation(Length, ops_metrics, architecture)[3]
+        d_inlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[0]
+        d_fan_outlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[2]
+        d_gg_inlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[3]
+        d_gg_outlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[4]
+
+        # Calculate nacelle weight based on Proesmans estimation
+        area_fancowl = l_fancowl*pi*(d_inlet+d_fan_outlet)/2
+        area_gg = l_gg*pi*(d_gg_inlet+d_gg_outlet)/2
+        fancowl_perc_nozzle = min(0.5*((d_inlet+d_fan_outlet)/2)/l_fancowl, 0.33)
+        gg_perc_nozzle = min(0.5*((d_gg_inlet+d_gg_outlet)/2)/l_gg, 0.33)
+        weight_fancowl = area_fancowl*(1-fancowl_perc_nozzle)*17.1+area_fancowl*fancowl_perc_nozzle*73.2  # Fan cowl weight estimation
+        weight_gg = area_gg*(1-gg_perc_nozzle)*17.1+area_gg*gg_perc_nozzle*73.2  # Gas generator weight estimation
+        weight_nacelle = weight_fancowl+weight_gg
+
+        # Calculate pylon and total system weight based on Torenbeek estimation
+        weight_total = (weight_engine+weight_nacelle)/0.86
+        weight_pylon = 0.14*weight_total
+
+        return weight_total, weight_engine, weight_nacelle, weight_pylon  # kg
 
 
 @dataclass(frozen=False)
 class Length:
-    """Calculates the length of the aircraft engine. Equations are taken from Design Methodologies
-     for Aerodynamics, Structures, Weight, and Thermodynamic Cycles (MIT, 2010)."""
+    """Calculates the length of the aircraft engine. Equations are taken from De Berekening van het
+    Omspoeld Gondeloppervlak van Enkel- en Dubbelstroom Straalmotoren voor Civiele VLiegtuigen
+    (Torenbeek & Berenschot, 1983)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -108,7 +123,7 @@ class Length:
         # Check whether gearbox is present
         gear = architecture.get_elements_by_type(Gearbox) is not None
 
-        # Check if fan is present
+        # Check if fan and CRTF are present
         fan_present = False
         crtf_present = False
         compressors = architecture.get_elements_by_type(Compressor)
@@ -118,53 +133,53 @@ class Length:
             if compressors[compressor].name == 'crtf':
                 crtf_present = True
 
-        # Get massflow rate and OPR
-        massflow = ops_metrics.mass_flow
-        opr = ops_metrics.opr
+        # Check if separate or mixed nacelle
+        config = 'mixed' if len(architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
 
-        # Get BPR
+        # Get necessary elements from operating metrics
+        massflow = ops_metrics.mass_flow
         bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        return fan_present, crtf_present, gear, massflow, opr, bpr
+        return fan_present, crtf_present, config, gear, massflow, bpr
 
     def length_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
-        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
+        fan_present, crtf_present, config, gear, massflow, bpr = self.check_architecture(ops_metrics, architecture)
 
-        # Calculate length with MIT WATE++ equations
-        if not gear:
-            a = (6.156*10**2)*bpr**2 + (1.357*10**1)*bpr + 27.51
-            b = (6.892*10**(-4))*bpr**2 - (2.714*10**(-2))*bpr + 0.505
-            c = 0.129
-        else:
-            a = (-1.956*10**(-2))*bpr**2 + (1.244*10**0)*bpr + 77.1
-            b = (7.354*10**(-6))*bpr**2 - (3.335*10**(-3))*bpr + 0.388
-            c = -0.032
-        length = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)*0.0254
+        # Define necessary parameters
+        t_atm = 288.15  # According to ISA atmosphere
+        rho_atm = 1.225  # According to ISA atmosphere
+        c_atm = sqrt(1.4*287.05*t_atm)
+        cl, dl, phi = (12, 0, 1) if not fan_present else ((9.8, 0.05, 1) if config == 'mixed' else (7.8, 0.1, 0.625))
+        beta = 0.21+0.12/sqrt(phi-0.3) if (fan_present and config == 'separate') else 0.35
 
-        # Add length changes based on components
-        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
-            length *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
+        # Calculate nacelle length with Torenbeek & Berenschot equations
+        l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
 
+        # Add length changes based on estimated component lengths, unless mentioned otherwise
         if not fan_present:  # Turbojet
-            length *= 0.75
-            if len(architecture.get_elements_by_type(Compressor)) != 1:  # Multiple shafts
-                length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-1)
-        else:  # Turbofan
-            if len(architecture.get_elements_by_type(Compressor)) != 2:  # Multiple shafts
-                length *= 1.1**(len(architecture.get_elements_by_type(Compressor))-2)
+            l_nacelle *= 0.75
+        if len(architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
+            l_nacelle *= 1.1**(len(architecture.get_elements_by_type(Turbine))-1)
+        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
+            l_nacelle *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
+        if crtf_present:  # CRTF
+            l_nacelle *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
 
-        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
-        if crtf_present:
-            length *= 1.1
+        # Calculate engine component lengths with Torenbeek & Berenschot equations
+        l_fancowl = phi*l_nacelle  # Fan cowl length
+        l_dmax = beta*l_fancowl  # Location at which engine diameter is max
+        l_gg = (1-phi)*l_nacelle  # Exposed gas generator length
+        l_cone = 0.5*l_gg  # Cone length --> estimation
 
-        return length
+        return l_nacelle, l_fancowl, l_dmax, l_gg, l_cone  # m
 
 
 @dataclass(frozen=False)
 class Diameter:
-    """Calculates the maximum diameter of the aircraft engine. Equations are taken from Aerospace
-    Design and Systems Engineering Elements I (TU Delft, 2017)."""
+    """Calculates the diameter of the aircraft engine. Equations are taken from De Berekening van het
+    Omspoeld Gondeloppervlak van Enkel- en Dubbelstroom Straalmotoren voor Civiele VLiegtuigen
+    (Torenbeek & Berenschot, 1983)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -186,32 +201,35 @@ class Diameter:
         massflow = ops_metrics.mass_flow
         bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        # Get necessary elements from operating metrics
-        p_atm = ops_metrics.p_atm  # atmospheric pressure [Pa]
-        t_atm = ops_metrics.t_atm+273.15  # atmospheric temperature [K]
-
-        return config, massflow, bpr, p_atm, t_atm
+        return fan_present, config, massflow, bpr
 
     def diameter_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
 
-        config, massflow, bpr, p_atm, t_atm = self.check_architecture(ops_metrics, architecture)
+        fan_present, config, massflow, bpr = self.check_architecture(ops_metrics, architecture)
+        l_nacelle = Length.length_calculation(Length, ops_metrics, architecture)[0]
+        phi = 1 if not fan_present else (1 if config == 'mixed' else 0.625)
+
+        # Define necessary parameters
+        t_atm = 288.15  # According to ISA atmosphere
+        rho_atm = 1.225  # According to ISA atmosphere
         c_atm = sqrt(1.4*287.05*t_atm)
-        rho_atm = p_atm/(287.05*t_atm)
 
         # Calculate maximum diameter with TU Delft equation
         dsdi = 0.05*(1 + 0.1*rho_atm*c_atm/massflow + 3*bpr/(1+bpr))
-        di = 1.65*sqrt((massflow/rho_atm/c_atm+0.005)/(1-dsdi**2))
-        cl, dl = (9.8, 0.05) if config == 'mixed' else (7.8, 0.1)
-        ln = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
-        diameter = di + 0.06*0.65*ln + 0.03
+        d_inlet = 1.65*sqrt((massflow/rho_atm/c_atm+0.005)/(1-dsdi**2))  # Nacelle inlet diameter
+        d_max = d_inlet + 0.06*phi*l_nacelle + 0.03  # Maximum nacelle diameter
+        d_fan_outlet = d_max*(1-(1/3)*phi**2)  # Fan exit diameter
+        d_gg_inlet = d_fan_outlet*((0.089*massflow/rho_atm/c_atm*bpr+4.5)/(0.067*massflow/rho_atm/c_atm*bpr+5.8))**2  # Gas generator inlet diameter
+        d_gg_outlet = 0.55*d_gg_inlet  # Gas generator outlet diameter
+        d_cone_inlet = 0.55*d_gg_outlet  # Cone inlet diameter --> estimation
 
-        return diameter  # m
+        return d_inlet, d_max, d_fan_outlet, d_gg_inlet, d_gg_outlet, d_cone_inlet  # m
 
 
 @dataclass(frozen=False)
 class NOx:
-    """Calculates the NOx emissions of the aircraft engine. Equations are taken from GasTurb 13
-    Design and Off-Design Performance of Gas Turbines (GasTurb GmbH, 2018)."""
+    """Calculates the NOx emissions of the aircraft engine. Equations are taken from GasTurb 13:
+    Design and Off-Design Performance of Gas Turbines (Kurzke, 2018)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -238,7 +256,7 @@ class NOx:
 @dataclass(frozen=False)
 class Noise:
     """Calculates the Noise emissions of the aircraft engine. Equations are taken from Interim
-    Prediction Method for Jet Noise (Stone, 1974)"""
+    Prediction Method for Jet Noise (Stone, 1974)."""
 
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
@@ -274,8 +292,8 @@ class Noise:
         OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
                        + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)
 
-        # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
-        if crtf_present:
+        # Add noise changes based on components
+        if crtf_present:  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
             OASPL_nozzle -= 5
 
         return OASPL_nozzle  # dB
