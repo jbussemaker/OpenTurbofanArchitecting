@@ -87,27 +87,33 @@ class ShaftChoice(ArchitectingChoice):
         rpm_shaft = [rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp]
 
         # Check the pressure ratio percentages
-        pr_compressor = [pr_compressor_ip if number_shafts >= 1 else 0, pr_compressor_lp if number_shafts == 2 else 0]
-        pr_compressor = [1/3, 1/3] if pr_compressor[0]+pr_compressor[1] >= 1 else pr_compressor
+        pr_percentages = [pr_compressor_ip if number_shafts >= 1 else 0, pr_compressor_lp if number_shafts == 2 else 0]
+        pr_percentages = [1/3, 1/3] if pr_percentages[0]+pr_percentages[1] >= 1 else pr_percentages
 
-        is_active = [True, True, pr_compressor[0], pr_compressor[1], True, number_shafts >= 1, number_shafts == 2]
+        # Calculate the pressure ratio for each compressor based on number of shafts and pressure ratio percentages
+        if pr_percentages[0] == 0 and pr_percentages[1] == 0:  # 1 shaft
+            pr_base = opr_core
+        elif pr_percentages[1] == 0:  # 2 shafts
+            pr_base = (opr_core/(pr_percentages[0]-pr_percentages[0]**2))**(1/2)
+        else:  # 3 shafts
+            pr_base = (opr_core/(pr_percentages[0]*pr_percentages[1]-pr_percentages[0]**2*pr_percentages[1]-pr_percentages[0]*pr_percentages[1]**2))**(1/3)
+        pr_compressor = [pr_base*(1-pr_percentages[0]-pr_percentages[1]), pr_base*pr_percentages[0], pr_base*pr_percentages[1]]
 
-        self._add_shafts(architecture, number_shafts, opr_core, pr_compressor, rpm_shaft)
+        is_active = [True, True, pr_percentages[0], pr_percentages[1], True, number_shafts >= 1, number_shafts == 2]
+
+        self._add_shafts(architecture, number_shafts, pr_compressor, rpm_shaft)
 
         return is_active
 
     @staticmethod
-    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, opr_core: float, pr_compressor: list, rpm_shaft: list):
+    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list):
 
         # Find the HP compressor and shaft
         compressor = architecture.get_elements_by_type(Compressor)[-1]
         shaft = architecture.get_elements_by_type(Shaft)[-1]
 
-        # Calculate the pressure ratio of the HP compressor
-        hp_pressure_perc = 1-pr_compressor[0]-pr_compressor[1]
-        compressor.pr = opr_core*hp_pressure_perc
-
-        # Adjust the HP shaft rpm
+        # Adjust the HP compressor pressure ratio and shaft rpm
+        compressor.pr = pr_compressor[0]
         shaft.rpm_design = rpm_shaft[0]
 
         for number in range(0, number_shafts):
@@ -125,7 +131,7 @@ class ShaftChoice(ArchitectingChoice):
             # Create new elements: compressor, turbine and shaft
             comp_new = Compressor(
                 name='comp_'+shaft_name, map=CompressorMap.AXI_5,
-                mach=compressor.mach, pr=opr_core*pr_compressor[number], eff=compressor.eff,
+                mach=compressor.mach, pr=pr_compressor[number+1], eff=compressor.eff,
             )
 
             turb_new = Turbine(
