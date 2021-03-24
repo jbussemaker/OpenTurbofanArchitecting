@@ -119,6 +119,9 @@ def test_int_des_var():
 
 class DummyChoice(ArchitectingChoice):
 
+    def __init__(self, add_constraint=False):
+        self.add_constraint = add_constraint
+
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             ContinuousDesignVariable('dv1', bounds=(5., 20.)),
@@ -142,6 +145,16 @@ class DummyChoice(ArchitectingChoice):
         compressor.pr = dv1
 
         return [True, True, False, 7]  # is_active or overwrite
+
+    def get_constraints(self) -> Optional[List[Constraint]]:
+        if self.add_constraint:
+            return [Constraint('max_dv_sum', ConstraintDirection.LOWER_EQUAL_THAN, 30.)]
+
+    def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
+                             an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
+        if self.add_constraint:
+            dv_sum = sum(design_vector)
+            return [dv_sum]
 
 
 @dataclass
@@ -325,6 +338,29 @@ def test_evaluate_architecture(an_problem):
     assert obj == [pytest.approx(22.6075, abs=1e-1)]
     assert con == [pytest.approx(22.6075, abs=1e-1)]
     assert met == [pytest.approx(22.6075, abs=1e-1)]
+
+
+def test_choice_constraints(an_problem):
+    problem = ArchitectingProblem(
+        analysis_problem=AnalysisProblem(design_condition=an_problem.design_condition),
+        choices=[DummyChoice(add_constraint=True)],
+        objectives=[DummyMetric()],
+        constraints=[],
+        metrics=[],
+    )
+
+    assert len(problem.constraints) == 0
+    assert len(problem.opt_constraints) == 1
+    assert problem.opt_constraints[0].name == 'max_dv_sum'
+
+    dv = problem.get_random_design_vector()
+    dv_imputed, obj, con, met = problem.evaluate(dv)
+
+    _, full_dv_decoded = problem.get_full_design_vector(dv_imputed)
+    dv_sum = sum(full_dv_decoded)
+
+    assert len(con) == 1
+    assert con[0] == dv_sum
 
 
 def test_platypus_problem(an_problem):

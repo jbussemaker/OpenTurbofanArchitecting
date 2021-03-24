@@ -39,3 +39,13 @@ class ArchitectingChoice:
         """Modify the default turbojet architecture based on the given design vector. Should return for each of the
         design variables whether they are active or not, or an explicit overwritten value of the design variable."""
         raise NotImplementedError
+
+    def get_constraints(self) -> Optional[List[Constraint]]:
+        """Optionally specify constraints that will always be added to the optimization problem."""
+        pass
+
+    def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
+                             an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
+        """Evaluate constraints as specified in get_constraints. Note: the design vector here is the design vector
+        as imputed/modified by modify_architecture!"""
+        pass

@@ -92,7 +92,9 @@ class ArchitectingProblem:
     @property
     def opt_constraints(self) -> List[Constraint]:
         if self._opt_con is None:
-            self._opt_con = [metric.get_opt_constraints(self.choices) for metric in self.constraints]
+            opt_con = [metric.get_opt_constraints(self.choices) for metric in self.constraints]
+            opt_con += [con for con in [choice.get_constraints() for choice in self.choices] if con is not None]
+            self._opt_con = opt_con
         return [con for cons in self._opt_con for con in cons]
 
     @property
@@ -149,9 +151,9 @@ class ArchitectingProblem:
 
         # Evaluate architecture
         results = self.evaluate_architecture(architecture)
-        objective_values, constraint_values, metric_values = self.extract_metrics(results, architecture)
+        obj_values, con_values, met_values = self.extract_metrics(architecture, imputed_design_vector, results)
 
-        self._results_cache[dv_cache] = imputed_design_vector, objective_values, constraint_values, metric_values
+        self._results_cache[dv_cache] = imputed_design_vector, obj_values, con_values, met_values
         return copy.copy(self._results_cache[dv_cache])
 
     def generate_architecture(self, design_vector: DesignVector) -> Tuple[TurbofanArchitecture, DesignVector]:
@@ -217,18 +219,29 @@ class ArchitectingProblem:
         builder.view_n2(openmdao_problem, show_browser=False)
         return builder.get_metrics(openmdao_problem)
 
-    def extract_metrics(self, results: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Tuple[List[float], List[float], List[float]]:
+    def extract_metrics(self, architecture: TurbofanArchitecture, imputed_design_vector: DesignVector,
+                        results: OperatingMetricsMap) -> Tuple[List[float], List[float], List[float]]:
 
         objective_values = []
-        for i, metric in enumerate(self.objectives):
+        for metric in self.objectives:
             objective_values += list(metric.extract_obj(self.analysis_problem, results, architecture))
 
         constraint_values = []
-        for i, metric in enumerate(self.constraints):
+        for metric in self.constraints:
             constraint_values += list(metric.extract_con(self.analysis_problem, results, architecture))
 
+        _, full_decoded_design_vector = self.get_full_design_vector(imputed_design_vector)
+        i_dv = 0
+        for i, choice in enumerate(self.choices):
+            n_dv = len(self._opt_des_vars[i])
+            choice_dv = full_decoded_design_vector[i_dv:i_dv+n_dv]
+            choice_con_values = choice.evaluate_constraints(architecture, choice_dv, self.analysis_problem, results)
+            if choice_con_values is not None:
+                constraint_values += list(choice_con_values)
+            i_dv += n_dv
+
         metric_values = []
-        for i, metric in enumerate(self.metrics):
+        for metric in self.metrics:
             metric_values += list(metric.extract_met(self.analysis_problem, results, architecture))
 
         return objective_values, constraint_values, metric_values
