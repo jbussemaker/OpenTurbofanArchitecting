@@ -47,4 +47,4 @@ class NoiseMetric(ArchitectingMetric):
 
     def _get_weight(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return Noise.noise_calculation(Noise, ops_metrics)
+        return Noise(ops_metrics, architecture).noise_calculation()  # get engine noise as metric

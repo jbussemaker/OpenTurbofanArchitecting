@@ -47,4 +47,4 @@ class NOxMetric(ArchitectingMetric):
 
     def _get_NOx(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return NOx.NOx_calculation(NOx, ops_metrics)
+        return NOx(ops_metrics).NOx_calculation()  # get engine NOx as metric

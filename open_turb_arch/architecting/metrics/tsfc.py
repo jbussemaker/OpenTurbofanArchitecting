@@ -46,4 +46,4 @@ class TSFCMetric(ArchitectingMetric):
 
     def _get_tsfc(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return ops_metrics.tsfc
+        return ops_metrics.tsfc  # get engine TSFC as metric

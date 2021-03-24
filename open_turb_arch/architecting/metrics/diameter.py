@@ -47,4 +47,4 @@ class DiameterMetric(ArchitectingMetric):
 
     def _get_diameter(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return Diameter.diameter_calculation(Diameter, ops_metrics, architecture)
+        return Diameter(ops_metrics, architecture).diameter_calculation()[0]  # get maximum engine diameter as metric

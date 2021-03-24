@@ -47,4 +47,4 @@ class WeightMetric(ArchitectingMetric):
 
     def _get_weight(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return Weight.weight_calculation(Weight, ops_metrics, architecture)
+        return Weight(ops_metrics, architecture).weight_calculation()[0]  # get system weight (engine+nacelle+pylon) as metric

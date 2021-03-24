@@ -34,16 +34,15 @@ class Weight:
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
 
-    @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def check_architecture(self):
 
         # Check whether gearbox is present
-        gear = architecture.get_elements_by_type(Gearbox) is not None
+        gear = self.architecture.get_elements_by_type(Gearbox) is not None
 
         # Check if fan and CRTF are present
         fan_present = False
         crtf_present = False
-        compressors = architecture.get_elements_by_type(Compressor)
+        compressors = self.architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan_present = True
@@ -51,46 +50,44 @@ class Weight:
                 crtf_present = True
 
         # Get massflow rate, OPR and BPR
-        massflow = ops_metrics.mass_flow
-        opr = ops_metrics.opr
-        bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
+        massflow = self.ops_metrics.mass_flow
+        opr = self.ops_metrics.opr
+        bpr = self.architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
         return fan_present, crtf_present, gear, massflow, opr, bpr
 
-    def weight_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def weight_calculation(self):
 
-        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture(ops_metrics, architecture)
+        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture()
 
         # Calculate engine weight with MIT WATE++ equations
-        if not gear:  # Gearbox present
-            a = (1.809*10)*bpr**2 + (4.769*10**2)*bpr + 701.3
-            b = (1.077*10**(-3))*bpr**2 - (3.716*10**(-2))*bpr + 1.190
-            c = (-1.058*10**(-2))*bpr + 0.326
-        else:  # No gearbox present
-            a = (-6.590*10**(-1))*bpr**2 + (2.928*10**2)*bpr + 1915
-            b = (6.784*10**(-5))*bpr**2 - (6.488*10**(-3))*bpr + 1.061
-            c = (-1.969*10**(-3))*bpr + 0.0711
+        if not gear:  # No gearbox present
+            a = (1.538*10)*bpr**2 + (4.011*10**2)*bpr + 631.5
+            b = (1.057*10**(-3))*bpr**2 - (3.693*10**(-2))*bpr + 1.171
+            c = (-1.022*10**(-2))*bpr + 0.232
+        else:  # Gearbox present
+            a = (-6.204*10**(-1))*bpr**2 + (2.373*10**2)*bpr + 1702
+            b = (5.845*10**(-5))*bpr**2 - (5.866*10**(-3))*bpr + 1.045
+            c = (-1.918*10**(-3))*bpr + 0.0677
         weight_engine = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
 
         # Add engine weight changes based on MIT component weights, unless mentioned otherwise
         if not fan_present:  # Turbojet
             weight_engine *= 0.75
-        if len(architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
-            weight_engine *= 1.1**(len(architecture.get_elements_by_type(Turbine))-1)
-        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
-            weight_engine *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
+        if len(self.architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
+            weight_engine *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-1)
+        if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
+            weight_engine *= 1.05**(len(self.architecture.get_elements_by_type(Burner))-1)
         if crtf_present:  # CRTF
             weight_engine *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
-        if len(architecture.get_elements_by_type(Mixer)) == 1:  # Mixed nacelle
-            weight_engine *= 1.1
 
         # Get nacelle lengths and diameters
-        l_fancowl = Length.length_calculation(Length, ops_metrics, architecture)[1]
-        l_gg = Length.length_calculation(Length, ops_metrics, architecture)[3]
-        d_inlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[0]
-        d_fan_outlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[2]
-        d_gg_inlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[3]
-        d_gg_outlet = Diameter.diameter_calculation(Diameter, ops_metrics, architecture)[4]
+        l_fancowl = Length(self.ops_metrics, self.architecture).length_calculation()[1]
+        l_gg = Length(self.ops_metrics, self.architecture).length_calculation()[3]
+        d_inlet = Diameter(self.ops_metrics, self.architecture).diameter_calculation()[0]
+        d_fan_outlet = Diameter(self.ops_metrics, self.architecture).diameter_calculation()[2]
+        d_gg_inlet = Diameter(self.ops_metrics, self.architecture).diameter_calculation()[3]
+        d_gg_outlet = Diameter(self.ops_metrics, self.architecture).diameter_calculation()[4]
 
         # Calculate nacelle weight based on Proesmans estimation
         area_fancowl = l_fancowl*pi*(d_inlet+d_fan_outlet)/2
@@ -117,16 +114,15 @@ class Length:
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
 
-    @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def check_architecture(self):
 
         # Check whether gearbox is present
-        gear = architecture.get_elements_by_type(Gearbox) is not None
+        gear = self.architecture.get_elements_by_type(Gearbox) is not None
 
         # Check if fan and CRTF are present
         fan_present = False
         crtf_present = False
-        compressors = architecture.get_elements_by_type(Compressor)
+        compressors = self.architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan_present = True
@@ -134,17 +130,17 @@ class Length:
                 crtf_present = True
 
         # Check if separate or mixed nacelle
-        config = 'mixed' if len(architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
+        config = 'mixed' if len(self.architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
 
         # Get necessary elements from operating metrics
-        massflow = ops_metrics.mass_flow
-        bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
+        massflow = self.ops_metrics.mass_flow
+        bpr = self.architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
         return fan_present, crtf_present, config, gear, massflow, bpr
 
-    def length_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def length_calculation(self):
 
-        fan_present, crtf_present, config, gear, massflow, bpr = self.check_architecture(ops_metrics, architecture)
+        fan_present, crtf_present, config, gear, massflow, bpr = self.check_architecture()
 
         # Define necessary parameters
         t_atm = 288.15  # According to ISA atmosphere
@@ -159,10 +155,10 @@ class Length:
         # Add length changes based on estimated component lengths, unless mentioned otherwise
         if not fan_present:  # Turbojet
             l_nacelle *= 0.75
-        if len(architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
-            l_nacelle *= 1.1**(len(architecture.get_elements_by_type(Turbine))-1)
-        if len(architecture.get_elements_by_type(Burner)) != 1:  # ITB
-            l_nacelle *= 1.05**(len(architecture.get_elements_by_type(Burner))-1)
+        if len(self.architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
+            l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-1)
+        if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
+            l_nacelle *= 1.05**(len(self.architecture.get_elements_by_type(Burner))-1)
         if crtf_present:  # CRTF
             l_nacelle *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
 
@@ -184,29 +180,28 @@ class Diameter:
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
 
-    @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def check_architecture(self):
 
         # Check if fan is present
         fan_present = False
-        compressors = architecture.get_elements_by_type(Compressor)
+        compressors = self.architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan_present = True
 
         # Check if separate or mixed nacelle
-        config = 'mixed' if len(architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
+        config = 'mixed' if len(self.architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
 
         # Get massflow rate and BPR
-        massflow = ops_metrics.mass_flow
-        bpr = architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
+        massflow = self.ops_metrics.mass_flow
+        bpr = self.architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
         return fan_present, config, massflow, bpr
 
-    def diameter_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def diameter_calculation(self):
 
-        fan_present, config, massflow, bpr = self.check_architecture(ops_metrics, architecture)
-        l_nacelle = Length.length_calculation(Length, ops_metrics, architecture)[0]
+        fan_present, config, massflow, bpr = self.check_architecture()
+        l_nacelle = Length(self.ops_metrics, self.architecture).length_calculation()[0]
         phi = 1 if not fan_present else (1 if config == 'mixed' else 0.625)
 
         # Define necessary parameters
@@ -232,20 +227,18 @@ class NOx:
     Design and Off-Design Performance of Gas Turbines (Kurzke, 2018)."""
 
     ops_metrics: OperatingMetrics
-    architecture: TurbofanArchitecture
 
-    @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics):
+    def check_architecture(self):
 
         # Get pressure and temperature from operating metrics
-        pressure = ops_metrics.p_burner_in/10**3  # burner inlet pressure [kPa]
-        temperature = ops_metrics.t_burner_in+273.15  # burner inlet temperature [K]
+        pressure = self.ops_metrics.p_burner_in/10**3  # burner inlet pressure [kPa]
+        temperature = self.ops_metrics.t_burner_in+273.15  # burner inlet temperature [K]
 
         return pressure, temperature
 
-    def NOx_calculation(self, ops_metrics: OperatingMetrics):
+    def NOx_calculation(self):
 
-        pressure, temperature = self.check_architecture(ops_metrics)
+        pressure, temperature = self.check_architecture()
 
         # Calculate NOx with GasTurb equation
         NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)
@@ -261,29 +254,28 @@ class Noise:
     ops_metrics: OperatingMetrics
     architecture: TurbofanArchitecture
 
-    @staticmethod
-    def check_architecture(ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def check_architecture(self):
 
         # Check if CRTF is present
         crtf_present = False
-        compressors = architecture.get_elements_by_type(Compressor)
+        compressors = self.architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'crtf':
                 crtf_present = True
 
         # Get necessary elements from operating metrics
-        area_jet = ops_metrics.area_jet  # outlet area of the jet nozzle [m2]
-        v_jet = ops_metrics.v_jet  # outlet velocity of the jet nozzle [m/s]
-        p_atm = ops_metrics.p_atm  # atmospheric pressure [Pa]
-        t_atm = ops_metrics.t_atm+273.15  # atmospheric temperature [K]
-        p_jet = ops_metrics.p_jet  # jet nozzle exit pressure [Pa]
-        t_jet = ops_metrics.t_jet+273.15  # jet nozzle exit temperature [K]
+        area_jet = self.ops_metrics.area_jet  # outlet area of the jet nozzle [m2]
+        v_jet = self.ops_metrics.v_jet  # outlet velocity of the jet nozzle [m/s]
+        p_atm = self.ops_metrics.p_atm  # atmospheric pressure [Pa]
+        t_atm = self.ops_metrics.t_atm+273.15  # atmospheric temperature [K]
+        p_jet = self.ops_metrics.p_jet  # jet nozzle exit pressure [Pa]
+        t_jet = self.ops_metrics.t_jet+273.15  # jet nozzle exit temperature [K]
 
         return crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet
 
-    def noise_calculation(self, ops_metrics: OperatingMetrics, architecture: TurbofanArchitecture):
+    def noise_calculation(self):
 
-        crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture(ops_metrics, architecture)
+        crtf_present, area_jet, v_jet, p_atm, t_atm, p_jet, t_jet = self.check_architecture()
         c_atm = sqrt(1.4*287.05*t_atm)
         rho_atm = p_atm/(287.05*t_atm)
         rho_jet = p_jet/(287.05*p_jet)

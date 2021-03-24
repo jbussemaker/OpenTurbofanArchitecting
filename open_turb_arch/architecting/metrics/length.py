@@ -47,4 +47,4 @@ class LengthMetric(ArchitectingMetric):
 
     def _get_length(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return Length.length_calculation(Length, ops_metrics, architecture)
+        return Length(ops_metrics, architecture).length_calculation()[0]  # get maximum engine length as metric
