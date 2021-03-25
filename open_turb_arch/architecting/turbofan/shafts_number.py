@@ -18,6 +18,7 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
@@ -37,7 +38,7 @@ class ShaftChoice(ArchitectingChoice):
     fixed_pr_compressor_ip: float = None  # Fix the percentage the IP performs from the overall core pressure ratio
     fixed_pr_compressor_lp: float = None  # Fix the percentage the LP performs from the overall core pressure ratio
 
-    pr_compressor_bounds: Tuple[float, float] = (0.01, 0.99)  # Percentage pressure ratio bounds
+    pr_compressor_bounds: Tuple[float, float] = (0.1, 0.9)  # Percentage pressure ratio bounds
 
     fixed_rpm_shaft_hp: float = None  # Fix the HP shaft rpm
     fixed_rpm_shaft_ip: float = None  # Fix the IP shaft rpm
@@ -104,6 +105,16 @@ class ShaftChoice(ArchitectingChoice):
         self._add_shafts(architecture, number_shafts, pr_compressor, rpm_shaft)
 
         return is_active
+
+    def get_constraints(self) -> Optional[List[Constraint]]:
+        # Max sum of pressure ratio percentages is 0.9 to enable at least 10% for the LP compressor
+        return [Constraint('max_pr_percentages_sum', ConstraintDirection.LOWER_EQUAL_THAN, 0.9)]
+
+    def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
+                             an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
+        # Sum the pressure ratio percentages
+        pr_percentages_sum = sum(design_vector[2:3])
+        return [pr_percentages_sum]
 
     @staticmethod
     def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list):

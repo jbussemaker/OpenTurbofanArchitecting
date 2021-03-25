@@ -19,6 +19,7 @@ from typing import *
 from itertools import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
@@ -184,6 +185,25 @@ class BleedChoice(ArchitectingChoice):
         self._include_bleed_intra(architecture, combined_fracs[3:6])
 
         return is_active
+
+    def get_constraints(self) -> Optional[List[Constraint]]:
+        constraints = []
+        # Max sum of bleed percentages for all inter- and intra-bleed is 1
+        for constraint in range(6):
+            bleed_type = 'inter' if constraint <= 2 else 'intra'
+            shaft_type = 'hp' if constraint in {0, 3} else ('ip' if constraint in {1, 4} else 'lp')
+            con = Constraint('max_bleed_percentages_sum_%s_%s' % (bleed_type, shaft_type), ConstraintDirection.LOWER_EQUAL_THAN, 1)
+            constraints.append(con)
+        return constraints
+
+    def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
+                             an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
+        constraints = []
+        # Sum the bleed percentages per inter- and intra-bleed
+        for constraint in range(6):
+            bleed_percentages_sum = sum(design_vector[4*constraint+1:4*constraint+4])
+            constraints.append(bleed_percentages_sum)
+        return constraints
 
     @staticmethod
     def _include_bleed_inter(architecture: TurbofanArchitecture, fractions: list):
