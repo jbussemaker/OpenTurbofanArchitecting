@@ -36,8 +36,10 @@ class Weight:
 
     def check_architecture(self):
 
-        # Check whether gearbox is present
+        # Check whether gearbox and heat exchanger are present
         gear = self.architecture.get_elements_by_type(Gearbox) is not None
+        hex = self.architecture.get_elements_by_type(HeatExchanger) is not None
+        hex_area = self.architecture.get_elements_by_type(HeatExchanger)[0].area if hex else 0
 
         # Check if fan and CRTF are present
         fan_present = False
@@ -54,11 +56,11 @@ class Weight:
         opr = self.ops_metrics.opr
         bpr = self.architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        return fan_present, crtf_present, gear, massflow, opr, bpr
+        return fan_present, crtf_present, gear, hex_area, massflow, opr, bpr
 
     def weight_calculation(self):
 
-        fan_present, crtf_present, gear, massflow, opr, bpr = self.check_architecture()
+        fan_present, crtf_present, gear, hex_area, massflow, opr, bpr = self.check_architecture()
 
         # Calculate engine weight with MIT WATE++ equations
         if not gear:  # No gearbox present
@@ -80,6 +82,8 @@ class Weight:
             weight_engine *= 1.05**(len(self.architecture.get_elements_by_type(Burner))-1)
         if crtf_present:  # CRTF
             weight_engine *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
+        if hex_area != 0:  # intercooler
+            weight_engine += hex_area/1550*0.002*4510*10  # titanium density = 4510 kg/m3, intercooler pipe thickness = 2 mm, pipes = 10% of installation
 
         # Get nacelle lengths and diameters
         l_fancowl = Length(self.ops_metrics, self.architecture).length_calculation()[1]

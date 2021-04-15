@@ -217,7 +217,7 @@ class ArchitectureCycle(pyc.Cycle):
                         raise RuntimeError('Burner has no incoming flow: %r' % pyc_el.name)
                     src_el_name = src_name.split('.')[0]
 
-                    self.connect(src_el_name+'.Fl_O:tot:P', 'perf.Pt3')
+                    self.connect(src_el_name+('.Fl_O:tot:P' if src_el_name != 'intercooler' else '.Fl_O1:tot:P'), 'perf.Pt3')
 
                 i_burner += 1
 

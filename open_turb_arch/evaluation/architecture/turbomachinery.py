@@ -66,6 +66,7 @@ class Compressor(BaseTurboMachinery):
     eff: float = 1.  # Enthalpy rise efficiency (<1 is less efficient)
     bleed_names: List[str] = field(default_factory=lambda: [])
     offtake_bleed: bool = None  # Compressor for extraction bleed offtake
+    flow_out: str = None
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         if self.shaft is None:
@@ -80,7 +81,7 @@ class Compressor(BaseTurboMachinery):
         return el
 
     def connect(self, cycle: pyc.Cycle):
-        self._connect_flow_target(cycle, self.target)
+        self._connect_flow_target(cycle, self.target, in_flow='Fl_I' if self.flow_out is None else self.flow_out)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         for param in ['s_PR', 's_Wc', 's_eff', 's_Nc']:

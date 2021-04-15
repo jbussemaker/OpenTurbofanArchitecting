@@ -8,3 +8,4 @@ from .bleed_choice import *
 from .offtakes_choice import *
 from .fuel_choice import *
 from .crtf_choice import *
+from .intercooler_choice import *

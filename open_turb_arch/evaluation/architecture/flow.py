@@ -22,7 +22,7 @@ import pycycle.api as pyc
 from dataclasses import dataclass, field
 from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
-__all__ = ['Inlet', 'Duct', 'Splitter', 'Mixer', 'BleedInter', 'BleedIntra', 'Nozzle', 'NozzleType']
+__all__ = ['Inlet', 'Duct', 'Splitter', 'Mixer', 'BleedInter', 'BleedIntra', 'Nozzle', 'NozzleType', 'HeatExchanger']
 
 
 @dataclass(frozen=False)
@@ -78,6 +78,7 @@ class Splitter(ArchElement):
     bpr: float = 1.  # Bypass ratio: ratio of bypassing flow (output 2) to core flow (output 1)
     core_mach: float = .3  # Reference Mach number for loss calculations
     bypass_mach: float = .3  # Reference Mach number for loss calculations
+    flow_out: str = None
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         el = pyc.Splitter(design=design, thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS)
@@ -91,7 +92,7 @@ class Splitter(ArchElement):
 
     def connect(self, cycle: pyc.Cycle):
         self._connect_flow_target(cycle, self.target_core, out_flow='Fl_O1')
-        self._connect_flow_target(cycle, self.target_bypass, out_flow='Fl_O2')
+        self._connect_flow_target(cycle, self.target_bypass, in_flow='Fl_I' if self.flow_out is None else self.flow_out, out_flow='Fl_O2')
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_connect_des_od(self.name+'.Fl_O1:stat:area', self.name+'.area1')
@@ -213,6 +214,32 @@ class Nozzle(ArchElement):
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_add_cycle_param(self.name+'.Cv', self.v_loss_coefficient)
+
+    def connect_des_od(self, mp_cycle: pyc.MPCycle):
+        pass
+
+
+@dataclass(frozen=False)
+class HeatExchanger(ArchElement):
+    target_fluid: ArchElement = None
+    target_coolant: ArchElement = None
+    fluid: ArchElement = None
+    coolant: ArchElement = None
+    area: float = 0.1  # Total area of heat exchanger
+    h_overall: float = 1/100  # Overall heat transfer coefficient
+
+    def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
+        el = pyc.HeatExchanger(thermo_data=thermo_data, Fl_I1_elements=pyc.AIR_ELEMENTS, Fl_I2_elements=pyc.AIR_ELEMENTS)
+        cycle.pyc_add_element(self.name, el)
+        return el
+
+    def connect(self, cycle: pyc.Cycle):
+        self._connect_flow_target(cycle, self.target_fluid, out_flow='Fl_O1')
+        self._connect_flow_target(cycle, self.target_coolant, out_flow='Fl_O2')
+
+    def add_cycle_params(self, mp_cycle: pyc.MPCycle):
+        mp_cycle.pyc_add_cycle_param(self.name+'.area', self.area)
+        mp_cycle.pyc_add_cycle_param(self.name+'.h_overall', self.h_overall)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         pass

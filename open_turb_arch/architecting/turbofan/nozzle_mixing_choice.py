@@ -64,8 +64,8 @@ class NozzleMixingChoice(ArchitectingChoice):
     def _include_mixing(architecture: TurbofanArchitecture):
 
         # Find core and bypass nozzles
-        nozzle_core = architecture.get_elements_by_type(Nozzle)[1]
-        nozzle_bypass = architecture.get_elements_by_type(Nozzle)[0]
+        nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
+        nozzle_bypass = architecture.get_elements_by_type(Nozzle)[1]
 
         # Create new elements: joint nozzle and mixer
         nozzle_joint = Nozzle(
@@ -84,5 +84,5 @@ class NozzleMixingChoice(ArchitectingChoice):
         nozzle_bypass.target = mixer
 
         # Add joint nozzle and mixer to the architecture elements
-        architecture.elements.insert(architecture.elements.index(nozzle_core)+1, mixer)
+        architecture.elements.insert(architecture.elements.index(nozzle_bypass)+1, mixer)
         architecture.elements.insert(architecture.elements.index(mixer)+1, nozzle_joint)
