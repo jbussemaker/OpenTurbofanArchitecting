@@ -109,9 +109,6 @@ class Mixer(ArchElement):
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         el = pyc.Mixer(design=design, thermo_data=thermo_data, Fl_I1_elements=pyc.AIR_FUEL_ELEMENTS, Fl_I2_elements=pyc.AIR_ELEMENTS)
         cycle.pyc_add_element(self.name, el)
-
-        if design:
-            pass
         return el
 
     def connect(self, cycle: pyc.Cycle):
@@ -182,7 +179,6 @@ class BleedIntra(ArchElement):
                 mp_cycle.pyc_add_cycle_param('%s.%s' % (self.target[i], bleed_name) + ':frac_P', self.target_frac_p)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        # mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
         pass
 
 

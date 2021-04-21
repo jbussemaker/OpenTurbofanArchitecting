@@ -83,10 +83,6 @@ class DesignBalancer(Balancer):
 
     def _balance_turbine_temp(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
-        if len(burners) == 0:
-            return
-        if len(burners) > 1:
-            warnings.warn('Check T4 balancing for multiple burners')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='degR', lower=1e-4, val=self._init_far, rhs_name='T4_target')
@@ -157,10 +153,6 @@ class OffDesignBalancer(Balancer):
 
     def _balance_thrust(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
-        if len(burners) == 0:
-            return
-        if len(burners) > 1:
-            warnings.warn('Check T4 balancing for multiple burners')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='lbf', lower=1e-4, val=self._init_far, rhs_name='Fn_target')
@@ -173,7 +165,7 @@ class OffDesignBalancer(Balancer):
 
     def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
         # Add a balance for extraction bleed
-        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='bleed_target')
+        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
 
         # Extraction bleed is only active for the selected compressor
         for compressor in architecture.get_elements_by_type(Compressor):

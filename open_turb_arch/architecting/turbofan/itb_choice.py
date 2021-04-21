@@ -53,7 +53,7 @@ class ITBChoice(ArchitectingChoice):
 
         # Check if at least 2 turbines is present
         turbines = architecture.get_elements_by_type(Turbine)
-        turbines_present = True if len(turbines) >= 2 else False
+        turbines_present = (len(turbines) >= 2)
 
         # The inter-turbine burner choice is only active if multiple turbines present
         include_itb, far = design_vector

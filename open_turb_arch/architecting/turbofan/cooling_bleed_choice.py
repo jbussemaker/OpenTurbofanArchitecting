@@ -24,52 +24,52 @@ from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
-__all__ = ['BleedChoice']
+__all__ = ['CoolingBleedChoice']
 
 
 @dataclass(frozen=False)
-class BleedChoice(ArchitectingChoice):
-    """Represents the choices of whether to include bleed or not."""
+class CoolingBleedChoice(ArchitectingChoice):
+    """Represents the choices of whether to include cooling bleed or not."""
 
     # Inter-bleed HPC-burner
-    fix_eb_hb_total: float = None  # Fix the total bleed portion of the inter-bleed between the HPC and burner
-    fix_eb_hbh_frac_w: float = None  # Fix the bleed portion of the HPT as target of the inter-bleed between the HPC and burner
-    fix_eb_hbi_frac_w: float = None  # Fix the bleed portion of the IPT as target of the inter-bleed between the HPC and burner
-    fix_eb_hbl_frac_w: float = None  # Fix the bleed portion of the LPT as target of the inter-bleed between the HPC and burner
+    fix_eb_hb_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the HPC and burner
+    fix_eb_hbh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the HPC and burner
+    fix_eb_hbi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the HPC and burner
+    fix_eb_hbl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the HPC and burner
 
     # Inter-bleed IPC-HPC
-    fix_eb_ih_total: float = None  # Fix the total bleed portion of the inter-bleed between the IPC and HPC
-    fix_eb_ihh_frac_w: float = None  # Fix the bleed portion of the HPT as target of the inter-bleed between the IPC and HPC
-    fix_eb_ihi_frac_w: float = None  # Fix the bleed portion of the IPT as target of the inter-bleed between the IPC and HPC
-    fix_eb_ihl_frac_w: float = None  # Fix the bleed portion of the LPT as target of the inter-bleed between the IPC and HPC
+    fix_eb_ih_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the IPC and HPC
+    fix_eb_ihh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the IPC and HPC
+    fix_eb_ihi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the IPC and HPC
+    fix_eb_ihl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the IPC and HPC
 
     # Inter-bleed LPC-IPC
-    fix_eb_li_total: float = None  # Fix the total bleed portion of the inter-bleed between the LPC and IPC
-    fix_eb_lih_frac_w: float = None  # Fix the bleed portion of the HPT as target of the inter-bleed between the LPC and IPC
-    fix_eb_lii_frac_w: float = None  # Fix the bleed portion of the IPT as target of the inter-bleed between the LPC and IPC
-    fix_eb_lil_frac_w: float = None  # Fix the bleed portion of the LPT as target of the inter-bleed between the LPC and IPC
+    fix_eb_li_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the LPC and IPC
+    fix_eb_lih_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the LPC and IPC
+    fix_eb_lii_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the LPC and IPC
+    fix_eb_lil_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the LPC and IPC
 
     # Intra-bleed HPC
-    fix_ab_hpc_total: float = None  # Fix the total bleed portion of the HPC intra-bleed
-    fix_ab_hh_frac_w: float = None  # Fix the bleed portion of the HPT as target of the HPC intra-bleed
-    fix_ab_hi_frac_w: float = None  # Fix the bleed portion of the IPT as target of the HPC intra-bleed
-    fix_ab_hl_frac_w: float = None  # Fix the bleed portion of the LPT as target of the HPC intra-bleed
+    fix_ab_hpc_total: float = None  # Fix the total cooling bleed portion of the HPC intra-bleed
+    fix_ab_hh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the HPC intra-bleed
+    fix_ab_hi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the HPC intra-bleed
+    fix_ab_hl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the HPC intra-bleed
 
     # Intra-bleed IPC
-    fix_ab_ipc_total: float = None  # Fix the total bleed portion of the IPC intra-bleed
-    fix_ab_ih_frac_w: float = None  # Fix the bleed portion of the HPT as target of the IPC intra-bleed
-    fix_ab_ii_frac_w: float = None  # Fix the bleed portion of the IPT as target of the IPC intra-bleed
-    fix_ab_il_frac_w: float = None  # Fix the bleed portion of the LPT as target of the IPC intra-bleed
+    fix_ab_ipc_total: float = None  # Fix the total cooling bleed portion of the IPC intra-bleed
+    fix_ab_ih_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the IPC intra-bleed
+    fix_ab_ii_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the IPC intra-bleed
+    fix_ab_il_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the IPC intra-bleed
 
     # Intra-bleed LPC
-    fix_ab_lpc_total: float = None  # Fix the total bleed portion of the LPC intra-bleed
-    fix_ab_lh_frac_w: float = None  # Fix the bleed portion of the HPT as target of the LPC intra-bleed
-    fix_ab_li_frac_w: float = None  # Fix the bleed portion of the IPT as target of the LPC intra-bleed
-    fix_ab_ll_frac_w: float = None  # Fix the bleed portion of the LPT as target of the LPC intra-bleed
+    fix_ab_lpc_total: float = None  # Fix the total cooling bleed portion of the LPC intra-bleed
+    fix_ab_lh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the LPC intra-bleed
+    fix_ab_li_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the LPC intra-bleed
+    fix_ab_ll_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the LPC intra-bleed
 
-    # Bounds of bleed mass flow
-    total_bounds: Tuple[float, float] = (0., 0.15)  # Total bleed portion bounds
-    frac_w_bounds: Tuple[float, float] = (0., 1.0)  # Bleed portion bounds
+    # Bounds of cooling bleed mass flow
+    total_bounds: Tuple[float, float] = (0., 0.1)  # Total cooling bleed portion bounds
+    frac_w_bounds: Tuple[float, float] = (0., 1.0)  # Cooling bleed portion bounds
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
@@ -153,6 +153,11 @@ class BleedChoice(ArchitectingChoice):
         ab_lpc_total, ab_lh_frac_w, ab_li_frac_w, ab_ll_frac_w \
         = design_vector
 
+        eb_ih_total = eb_ih_total if has_ip else 0
+        eb_li_total = eb_li_total if has_lp else 0
+        ab_ipc_total = ab_ipc_total if has_ip else 0
+        ab_lpc_total = ab_lpc_total if has_lp else 0
+
         totals = [eb_hb_total, eb_ih_total, eb_li_total, ab_hpc_total, ab_ipc_total, ab_lpc_total]
         eb_hb_frac = [eb_hbh_frac_w, eb_hbi_frac_w, eb_hbl_frac_w]
         eb_ih_frac = [eb_ihh_frac_w, eb_ihi_frac_w, eb_ihl_frac_w]
@@ -160,6 +165,7 @@ class BleedChoice(ArchitectingChoice):
         ab_hpc_frac = [ab_hh_frac_w, ab_hi_frac_w, ab_hl_frac_w]
         ab_ipc_frac = [ab_ih_frac_w, ab_ii_frac_w, ab_il_frac_w]
         ab_lpc_frac = [ab_lh_frac_w, ab_li_frac_w, ab_ll_frac_w]
+
 
         combined_fracs = [eb_hb_frac, eb_ih_frac, eb_li_frac, ab_hpc_frac, ab_ipc_frac, ab_lpc_frac]
         for i, frac in enumerate(combined_fracs):
@@ -173,12 +179,12 @@ class BleedChoice(ArchitectingChoice):
             frac_adjusted = [frac_atmos, frac[0], frac[1], frac[2]]
             combined_fracs[i] = [x*totals[i] for x in frac_adjusted]
 
-        is_active = [True, combined_fracs[0][0], combined_fracs[0][1], combined_fracs[0][2],
-                     has_ip, combined_fracs[1][0], combined_fracs[1][1], combined_fracs[1][2],
-                     has_lp, combined_fracs[2][0], combined_fracs[2][1], combined_fracs[2][2],
-                     True, combined_fracs[3][0], combined_fracs[3][1], combined_fracs[3][2],
-                     has_ip, combined_fracs[4][0], combined_fracs[4][1], combined_fracs[4][2],
-                     has_lp, combined_fracs[5][0], combined_fracs[5][1], combined_fracs[5][2]]
+        is_active = [True, combined_fracs[0][1], combined_fracs[0][2], combined_fracs[0][3],
+                     eb_ih_total, combined_fracs[1][1], combined_fracs[1][2], combined_fracs[1][3],
+                     eb_li_total, combined_fracs[2][1], combined_fracs[2][2], combined_fracs[2][3],
+                     True, combined_fracs[3][1], combined_fracs[3][2], combined_fracs[3][3],
+                     ab_ipc_total, combined_fracs[4][1], combined_fracs[4][2], combined_fracs[4][3],
+                     ab_lpc_total, combined_fracs[5][1], combined_fracs[5][2], combined_fracs[5][3]]
 
         # Add the inter-bleed
         self._include_bleed_inter(architecture, combined_fracs[0:3])
@@ -215,29 +221,34 @@ class BleedChoice(ArchitectingChoice):
 
         for number in range(len(turbines)):
 
-            # Create inter-bleed name
-            name = 'bld_inter_' + str(number)
-
-            # Specify targets bleed
-            adjusted_targets = []
-            bleed_names = []
-            if fractions[number][0] != 0:
-                adjusted_targets.append('atmos')
-                bleed_names.append(name + '_atmos')
-            if fractions[number][1] != 0:
-                adjusted_targets.append('turbine')
-                bleed_names.append(name + '_turbine')
-                turbines[0].bleed_names.append(name + '_turbine')
-            if fractions[number][2] != 0:
-                adjusted_targets.append('turb_ip')
-                bleed_names.append(name + '_turb_ip')
-                turbines[1].bleed_names.append(name + '_turb_ip')
-            if fractions[number][3] != 0:
-                adjusted_targets.append('turb_lp')
-                bleed_names.append(name + '_turb_lp')
-                turbines[2].bleed_names.append(name + '_turb_lp')
-
             if sum(fractions[number]) != 0:
+
+                # Create inter-bleed name
+                name = 'bld_inter_' + str(number)
+
+                # Specify targets bleed
+                adjusted_targets = []
+                adjusted_fractions = []
+                bleed_names = []
+                if fractions[number][0] != 0:
+                    adjusted_targets.append('atmos')
+                    adjusted_fractions.append(fractions[number][0])
+                    bleed_names.append(name + '_atmos')
+                if fractions[number][1] != 0:
+                    adjusted_targets.append('turbine')
+                    adjusted_fractions.append(fractions[number][1])
+                    bleed_names.append(name + '_turbine')
+                    turbines[0].bleed_names.append(name + '_turbine')
+                if fractions[number][2] != 0:
+                    adjusted_targets.append('turb_ip')
+                    adjusted_fractions.append(fractions[number][2])
+                    bleed_names.append(name + '_turb_ip')
+                    turbines[1].bleed_names.append(name + '_turb_ip')
+                if fractions[number][3] != 0:
+                    adjusted_targets.append('turb_lp')
+                    adjusted_fractions.append(fractions[number][3])
+                    bleed_names.append(name + '_turb_lp')
+                    turbines[2].bleed_names.append(name + '_turb_lp')
 
                 # Specify targets bleed-inter component
                 target = compressors[-1*number] if number > 0 else burner
@@ -245,7 +256,7 @@ class BleedChoice(ArchitectingChoice):
                 # Create new element(s): BleedInter
                 bleed_inter = BleedInter(
                     name=name, target=target, target_bleed=adjusted_targets,
-                    bleed_names=bleed_names, source_frac_w=fractions[number]
+                    bleed_names=bleed_names, source_frac_w=adjusted_fractions
                 )
 
                 # Reroute flows
@@ -263,42 +274,47 @@ class BleedChoice(ArchitectingChoice):
 
         for number in range(len(turbines)):
 
-            # Create intra-bleed name
-            name = 'bld_intra_' + str(number)
-
-            # Specify sources bleed-intra component
-            source = compressors[-1-1*number]
-            source_name = '_hpc' if number == 0 else ('_ipc' if number == 1 else '_lpc')
-
-            # Specify targets bleed
-            adjusted_targets = []
-            bleed_names = []
-            if fractions[number][0] != 0:
-                adjusted_targets.append('atmos')
-                bleed_names.append(name + source_name + '_atmos')
-                compressors[-1-1*number].bleed_names.append(name + source_name + '_atmos')
-            if fractions[number][1] != 0:
-                adjusted_targets.append('turbine')
-                bleed_names.append(name + source_name + '_hp')
-                compressors[-1-1*number].bleed_names.append(name + source_name + '_hp')
-                turbines[0].bleed_names.append(name + source_name + '_hp')
-            if fractions[number][2] != 0:
-                adjusted_targets.append('turb_ip')
-                bleed_names.append(name + source_name + '_ip')
-                compressors[-1-1*number].bleed_names.append(name + source_name + '_ip')
-                turbines[1].bleed_names.append(name + source_name + '_ip')
-            if fractions[number][3] != 0:
-                adjusted_targets.append('turb_lp')
-                bleed_names.append(name + source_name + '_lp')
-                compressors[-1-1*number].bleed_names.append(name + source_name + '_lp')
-                turbines[2].bleed_names.append(name + source_name + '_lp')
-
             if sum(fractions[number]) != 0:
+
+                # Create intra-bleed name
+                name = 'bld_intra_' + str(number)
+
+                # Specify sources bleed-intra component
+                source = compressors[-1-1*number]
+                source_name = '_hpc' if number == 0 else ('_ipc' if number == 1 else '_lpc')
+
+                # Specify targets bleed
+                adjusted_targets = []
+                adjusted_fractions = []
+                bleed_names = []
+                if fractions[number][0] != 0:
+                    adjusted_targets.append('atmos')
+                    adjusted_fractions.append(fractions[number][0])
+                    bleed_names.append(name + source_name + '_atmos')
+                    compressors[-1-1*number].bleed_names.append(name + source_name + '_atmos')
+                if fractions[number][1] != 0:
+                    adjusted_targets.append('turbine')
+                    adjusted_fractions.append(fractions[number][1])
+                    bleed_names.append(name + source_name + '_hp')
+                    compressors[-1-1*number].bleed_names.append(name + source_name + '_hp')
+                    turbines[0].bleed_names.append(name + source_name + '_hp')
+                if fractions[number][2] != 0:
+                    adjusted_targets.append('turb_ip')
+                    adjusted_fractions.append(fractions[number][2])
+                    bleed_names.append(name + source_name + '_ip')
+                    compressors[-1-1*number].bleed_names.append(name + source_name + '_ip')
+                    turbines[1].bleed_names.append(name + source_name + '_ip')
+                if fractions[number][3] != 0:
+                    adjusted_targets.append('turb_lp')
+                    adjusted_fractions.append(fractions[number][3])
+                    bleed_names.append(name + source_name + '_lp')
+                    compressors[-1-1*number].bleed_names.append(name + source_name + '_lp')
+                    turbines[2].bleed_names.append(name + source_name + '_lp')
 
                 # Create new element(s): BleedIntra
                 bleed_intra = BleedIntra(
                     name=name, source=source, target=adjusted_targets,
-                    bleed_names=bleed_names, source_frac_w=fractions[number]
+                    bleed_names=bleed_names, source_frac_w=adjusted_fractions
                 )
 
                 # Add BleedIntra to architecture elements

@@ -30,20 +30,20 @@ __all__ = ['OfftakesChoice']
 
 @dataclass(frozen=False)
 class OfftakesChoice(ArchitectingChoice):
-    """Represents the choices of offtakes, both power and bleed."""
+    """Represents the choices of offtakes, both power and extraction bleed."""
 
     fix_power_offtake_location: int = None  # Fix the shaft number of the power offtake
 
-    fix_bleed_offtake_location: int = None  # Fix the compressor number of the bleed offtake
+    fix_bleed_offtake_location: int = None  # Fix the compressor number of the extraction bleed offtake
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             DiscreteDesignVariable(
-                'power_offtake_location', type=DiscreteDesignVariableType.INTEGER, values=[0, 1, 2],
+                'power_offtake_location', type=DiscreteDesignVariableType.INTEGER, values=[1, 2, 3],
                 fixed_value=self.fix_power_offtake_location),
 
             DiscreteDesignVariable(
-                'bleed_offtake_location', type=DiscreteDesignVariableType.INTEGER, values=[0, 1, 2],
+                'bleed_offtake_location', type=DiscreteDesignVariableType.INTEGER, values=[1, 2, 3],
                 fixed_value=self.fix_bleed_offtake_location),
         ]
 
@@ -53,18 +53,7 @@ class OfftakesChoice(ArchitectingChoice):
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
 
-        # The power and bleed offtake locations are true if shaft choice is smaller then or equal to then the number of shafts in architecture
         power_offtake_location, bleed_offtake_location = design_vector
-        is_active = [True, True]
-
-        # Add offtakes
-        self._power_location(architecture, analysis_problem, power_offtake_location)
-        self._bleed_location(architecture, bleed_offtake_location)
-
-        return is_active
-
-    @staticmethod
-    def _power_location(architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, shaft_number: int):
 
         # Find fan shaft
         special_shafts = 0
@@ -72,20 +61,6 @@ class OfftakesChoice(ArchitectingChoice):
         for shaft in range(len(shafts)):
             if shafts[shaft].name == 'fan_shaft':
                 special_shafts += 1
-
-        # Find the required shaft for power offtake
-        shafts = len(architecture.get_elements_by_type(Shaft))-special_shafts
-        if shafts >= shaft_number+1:  # Feasible shaft selection
-            shaft = architecture.get_elements_by_type(Shaft)[-1-1*shaft_number]
-        else:  # Unfeasible shaft selection: choose closest one
-            shaft = architecture.get_elements_by_type(Shaft)[-1*shafts]
-
-        # Add the power offtake to the shaft
-        shaft.offtake_shaft = True
-        shaft.power_offtake = analysis_problem.design_condition.power_offtake
-
-    @staticmethod
-    def _bleed_location(architecture: TurbofanArchitecture, compressor_number: int):
 
         # Find fan and CRTF
         special_compressors = 0
@@ -95,11 +70,32 @@ class OfftakesChoice(ArchitectingChoice):
                 special_compressors += 1
 
         # Find the required shaft for power offtake
+        shafts = len(architecture.get_elements_by_type(Shaft))-special_shafts
+        shaft_number = power_offtake_location if shafts >= power_offtake_location else shafts
+        shaft = architecture.get_elements_by_type(Shaft)[-shaft_number]
+
+        # Find the required compressor for extraction bleed offtake
         compressors = len(architecture.get_elements_by_type(Compressor))-special_compressors
-        if compressors >= compressor_number+1:  # Feasible compressor selection
-            compressor = architecture.get_elements_by_type(Compressor)[-1-1*compressor_number]
-        else:  # Unfeasible compressor selection: choose closest one
-            compressor = architecture.get_elements_by_type(Compressor)[-1*compressors]
+        compressor_number = bleed_offtake_location if compressors >= bleed_offtake_location else compressors
+        compressor = architecture.get_elements_by_type(Compressor)[-compressor_number]
+
+        is_active = [shaft_number, compressor_number]
+
+        # Add offtakes
+        self._power_location(analysis_problem, shaft)
+        self._bleed_location(architecture, compressor)
+
+        return is_active
+
+    @staticmethod
+    def _power_location(analysis_problem: AnalysisProblem, shaft: Shaft):
+
+        # Add the power offtake to the shaft
+        shaft.offtake_shaft = True
+        shaft.power_offtake = analysis_problem.design_condition.power_offtake
+
+    @staticmethod
+    def _bleed_location(architecture: TurbofanArchitecture, compressor: Compressor):
 
         # Add the bleed offtake to the compressor
         bleed_offtake = BleedIntra(

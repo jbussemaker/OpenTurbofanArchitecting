@@ -37,8 +37,8 @@ class Weight:
     def check_architecture(self):
 
         # Check whether gearbox and heat exchanger are present
-        gear = self.architecture.get_elements_by_type(Gearbox) is not None
-        hex = self.architecture.get_elements_by_type(HeatExchanger) is not None
+        gear = False if not self.architecture.get_elements_by_type(Gearbox) else True
+        hex = False if not self.architecture.get_elements_by_type(HeatExchanger) else True
         hex_area = self.architecture.get_elements_by_type(HeatExchanger)[0].area if hex else 0
 
         # Check if fan and CRTF are present
@@ -97,7 +97,7 @@ class Weight:
         area_fancowl = l_fancowl*pi*(d_inlet+d_fan_outlet)/2
         area_gg = l_gg*pi*(d_gg_inlet+d_gg_outlet)/2
         fancowl_perc_nozzle = min(0.5*((d_inlet+d_fan_outlet)/2)/l_fancowl, 0.33)
-        gg_perc_nozzle = min(0.5*((d_gg_inlet+d_gg_outlet)/2)/l_gg, 0.33)
+        gg_perc_nozzle = min(0.5*((d_gg_inlet+d_gg_outlet)/2)/l_gg, 0.33) if l_gg != 0 else 0
         weight_fancowl = area_fancowl*(1-fancowl_perc_nozzle)*17.1+area_fancowl*fancowl_perc_nozzle*73.2  # Fan cowl weight estimation
         weight_gg = area_gg*(1-gg_perc_nozzle)*17.1+area_gg*gg_perc_nozzle*73.2  # Gas generator weight estimation
         weight_nacelle = weight_fancowl+weight_gg
@@ -121,7 +121,7 @@ class Length:
     def check_architecture(self):
 
         # Check whether gearbox is present
-        gear = self.architecture.get_elements_by_type(Gearbox) is not None
+        gear = False if not self.architecture.get_elements_by_type(Gearbox) else True
 
         # Check if fan and CRTF are present
         fan_present = False
@@ -194,7 +194,7 @@ class Diameter:
                 fan_present = True
 
         # Check if separate or mixed nacelle
-        config = 'mixed' if len(self.architecture.get_elements_by_type(Mixer)) == 1 else 'separate'
+        config = 'separate' if not self.architecture.get_elements_by_type(Mixer) else 'mixed'
 
         # Get massflow rate and BPR
         massflow = self.ops_metrics.mass_flow
@@ -245,9 +245,9 @@ class NOx:
         pressure, temperature = self.check_architecture()
 
         # Calculate NOx with GasTurb equation
-        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)
+        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
 
-        return NOx/10**3  # (gram NOx)/kN
+        return NOx  # (gram NOx)/kN
 
 
 @dataclass(frozen=False)
@@ -283,9 +283,12 @@ class Noise:
         c_atm = sqrt(1.4*287.05*t_atm)
         rho_atm = p_atm/(287.05*t_atm)
         rho_jet = p_jet/(287.05*p_jet)
+        rho_isa = 1.225
+        c_isa = sqrt(1.4*287.05*288.15)
 
         # Calculate noise with Stone equation
-        OASPL_nozzle = 141 + 10*log10(area_jet) + 10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
+        OASPL_nozzle = 141 + 10*log10(area_jet*(rho_atm/rho_isa)**2*(c_atm/c_isa)**2) + \
+                       10*log10((v_jet/c_atm)**7.5/(1+0.01*(v_jet/c_atm)**4.5)) \
                        + 10*(3*(v_jet/c_atm)**3.5/(0.6+(v_jet/c_atm)**3.5)-1)*log10(rho_jet/rho_atm)
 
         # Add noise changes based on components

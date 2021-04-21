@@ -35,10 +35,10 @@ class IntercoolerChoice(ArchitectingChoice):
     fix_ic_location: int = None  # Fix the location of the intercooler
 
     fixed_radius: float = None  # Fix the radius of each intercooler pipe
-    radius_bounds: Tuple[float, float] = (0.01, 0.25)  # Pipe radius design bounds (verify & validate!!)
+    radius_bounds: Tuple[float, float] = (0.01, 0.2)  # Intercooler pipe radius design bounds (verify & validate!!)
 
     fixed_length: float = None  # Fix the length of each intercooler pipe
-    length_bounds: Tuple[float, float] = (0.01, 1)  # Intercooler pipe length bounds
+    length_bounds: Tuple[float, float] = (0.01, 0.5)  # Intercooler pipe length design bounds (verify & validate!!)
 
     fixed_number: int = None  # Fix the number of intercooler pipes
 
@@ -59,7 +59,7 @@ class IntercoolerChoice(ArchitectingChoice):
                 'length', bounds=self.length_bounds, fixed_value=self.fixed_length),
 
             DiscreteDesignVariable(
-                'number', type=DiscreteDesignVariableType.INTEGER, values=range(1, 17),
+                'number', type=DiscreteDesignVariableType.INTEGER, values=range(4, 10),
                 fixed_value=self.fixed_number),
         ]
 

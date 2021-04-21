@@ -52,8 +52,8 @@ class OperatingCondition:
     def set_values(self, problem: om.Problem):
         problem.set_val(self.name+'.fc.MN', self.mach)
         problem.set_val(self.name+'.fc.alt', self.alt, units=units.ALTITUDE)
-        problem.set_val(self.name+'.balance.Fn_target', self.thrust, units=units.FORCE)
-        problem.set_val(self.name+'.balance.extraction_bleed_target', self.bleed_offtake, units=units.MASS_FLOW)
+        problem.set_val('%s.%s.Fn_target' % (self.name, self.balancer.balance_name), self.thrust, units=units.FORCE)
+        problem.set_val('%s.%s.extraction_bleed_target' % (self.name, self.balancer.balance_name), self.bleed_offtake, units=units.MASS_FLOW)
 
         if self.d_temp != 0:
             problem.set_val(self.name+'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
@@ -74,7 +74,7 @@ class DesignCondition(OperatingCondition):
 
         if self.turbine_in_temp == 0.:
             raise ValueError('Must set a target turbine inlet temperature for the design condition')
-        problem.set_val(self.name+'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
+        problem.set_val('%s.%s.T4_target' % (self.name, self.balancer.balance_name), self.turbine_in_temp, units=units.TEMPERATURE)
 
     def _get_name(self) -> str:
         return 'design'
@@ -456,7 +456,7 @@ class Balancer:
     """A balancer defines how certain values should be implicitly equated to each other so that calculations are
     consistent (i.e. they solve the residuals)."""
 
-    balance_name = 'balance'
+    balance_name = 'engine_balance'
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         """Add balances and set initial guesses."""

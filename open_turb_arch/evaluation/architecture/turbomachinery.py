@@ -182,9 +182,6 @@ class Gearbox(BaseTurboMachinery):
 
         el = pyc.Gearbox()
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('N_in', self.core_shaft.name+'_Nmech'), ('N_out', self.fan_shaft.name+'_Nmech')])
-
-        if design:
-            pass
         return el
 
     def connect(self, cycle: pyc.Cycle):

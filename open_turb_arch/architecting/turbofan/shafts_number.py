@@ -30,7 +30,7 @@ __all__ = ['ShaftChoice']
 class ShaftChoice(ArchitectingChoice):
     """Represents the choices of how many shafts to use in the engine."""
 
-    fixed_add_shafts: int = None  # Fix the number of added shafts
+    fixed_number_shafts: int = None  # Fix the number of added shafts
 
     fixed_opr_core: float = None  # Fix the overall pressure ratio of the core
     opr_core_bounds: Tuple[float, float] = (1.1, 60)  # Core overall pressure ratio bounds
@@ -49,8 +49,8 @@ class ShaftChoice(ArchitectingChoice):
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             DiscreteDesignVariable(
-                'number_shafts', type=DiscreteDesignVariableType.INTEGER, values=[0, 1, 2],
-                fixed_value=self.fixed_add_shafts),
+                'number_shafts', type=DiscreteDesignVariableType.INTEGER, values=[1, 2, 3],
+                fixed_value=self.fixed_number_shafts),
 
             ContinuousDesignVariable(
                 'opr_core', bounds=self.opr_core_bounds,
@@ -88,7 +88,7 @@ class ShaftChoice(ArchitectingChoice):
         rpm_shaft = [rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp]
 
         # Check the pressure ratio percentages
-        pr_percentages = [pr_compressor_ip if number_shafts >= 1 else 0, pr_compressor_lp if number_shafts == 2 else 0]
+        pr_percentages = [pr_compressor_ip if number_shafts >= 2 else 0, pr_compressor_lp if number_shafts == 3 else 0]
         pr_percentages = [1/3, 1/3] if pr_percentages[0]+pr_percentages[1] >= 1 else pr_percentages
 
         # Calculate the pressure ratio for each compressor based on number of shafts and pressure ratio percentages
@@ -100,9 +100,9 @@ class ShaftChoice(ArchitectingChoice):
             pr_base = (opr_core/(pr_percentages[0]*pr_percentages[1]-pr_percentages[0]**2*pr_percentages[1]-pr_percentages[0]*pr_percentages[1]**2))**(1/3)
         pr_compressor = [pr_base*(1-pr_percentages[0]-pr_percentages[1]), pr_base*pr_percentages[0], pr_base*pr_percentages[1]]
 
-        is_active = [True, True, pr_percentages[0], pr_percentages[1], True, number_shafts >= 1, number_shafts == 2]
+        is_active = [True, True, pr_percentages[0], pr_percentages[1], True, number_shafts >= 2, number_shafts == 3]
 
-        self._add_shafts(architecture, number_shafts, pr_compressor, rpm_shaft)
+        self._add_shafts(architecture, number_shafts-1, pr_compressor, rpm_shaft)
 
         return is_active
 
@@ -142,12 +142,12 @@ class ShaftChoice(ArchitectingChoice):
             # Create new elements: compressor, turbine and shaft
             comp_new = Compressor(
                 name='comp_'+shaft_name, map=CompressorMap.AXI_5,
-                mach=compressor.mach, pr=pr_compressor[number+1], eff=compressor.eff,
+                mach=compressor.mach*1.15, pr=pr_compressor[number+1], eff=compressor.eff,
             )
 
             turb_new = Turbine(
                 name='turb_'+shaft_name, map=TurbineMap.LPT_2269,
-                mach=compressor.mach, eff=compressor.eff,
+                mach=turbine.mach*1.15, eff=turbine.eff,
             )
 
             shaft_new = Shaft(
