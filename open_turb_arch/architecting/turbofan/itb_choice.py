@@ -32,7 +32,7 @@ class ITBChoice(ArchitectingChoice):
     fix_include_itb: bool = None  # Set to True of False to fix the choice of whether to include an inter-turbine burner or not
 
     fixed_far: float = None  # Fix the FAR of the inter-turbine burner
-    far_bounds: Tuple[float, float] = (0., 0.1)  # FAR design bounds (verify & validate!!)
+    far_bounds: Tuple[float, float] = (0., 0.05)  # FAR design bounds (verify & validate!!)
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [

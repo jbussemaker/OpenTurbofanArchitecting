@@ -32,7 +32,7 @@ class AfterburnerChoice(ArchitectingChoice):
     fix_include_afterburner: bool = None  # Set to True of False to fix the choice of whether to include an afterburner or not
 
     fixed_far: float = None  # Fix the FAR of the afterburner
-    far_bounds: Tuple[float, float] = (0., 0.1)  # FAR design bounds (verify & validate!!)
+    far_bounds: Tuple[float, float] = (0., 0.05)  # FAR design bounds (verify & validate!!)
 
     def get_design_variables(self) -> List[DesignVariable]:
         return [
