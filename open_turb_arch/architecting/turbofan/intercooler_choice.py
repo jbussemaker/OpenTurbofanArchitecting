@@ -19,6 +19,7 @@ import numpy as np
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
@@ -35,7 +36,7 @@ class IntercoolerChoice(ArchitectingChoice):
     fix_ic_location: int = None  # Fix the location of the intercooler
 
     fixed_radius: float = None  # Fix the radius of each intercooler pipe
-    radius_bounds: Tuple[float, float] = (0.01, 0.2)  # Intercooler pipe radius design bounds (verify & validate!!)
+    radius_bounds: Tuple[float, float] = (0.01, 0.05)  # Intercooler pipe radius design bounds (verify & validate!!)
 
     fixed_length: float = None  # Fix the length of each intercooler pipe
     length_bounds: Tuple[float, float] = (0.01, 0.5)  # Intercooler pipe length design bounds (verify & validate!!)
@@ -59,7 +60,7 @@ class IntercoolerChoice(ArchitectingChoice):
                 'length', bounds=self.length_bounds, fixed_value=self.fixed_length),
 
             DiscreteDesignVariable(
-                'number', type=DiscreteDesignVariableType.INTEGER, values=range(4, 10),
+                'number', type=DiscreteDesignVariableType.INTEGER, values=range(1, 251),
                 fixed_value=self.fixed_number),
         ]
 
@@ -82,6 +83,7 @@ class IntercoolerChoice(ArchitectingChoice):
         # Modify intercooler location based on number of turbines
         turbines = len(architecture.get_elements_by_type(Turbine))
         modified_ic_location = ic_location if ic_location <= turbines-1 else turbines-1
+        modified_ic_location = modified_ic_location if include_ic else 0
 
         is_active = [fan_present, modified_ic_location, fan_present and include_ic, fan_present and include_ic, fan_present and include_ic]
 
@@ -90,6 +92,18 @@ class IntercoolerChoice(ArchitectingChoice):
 
         return is_active
 
+    def get_constraints(self) -> Optional[List[Constraint]]:
+        # Max length of compressor is 50% of engine radius
+        return [Constraint('max_intercooler_length_percentage', ConstraintDirection.LOWER_EQUAL_THAN, 0.5)]
+
+    def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
+                             an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
+        # Find the engine radius
+        ops_metrics = result[an_problem.design_condition]
+        engine_radius = np.sqrt(ops_metrics.area_inlet/np.pi)
+        intercooler_length_percentage = design_vector[3]/engine_radius
+        return [intercooler_length_percentage]
+
     @staticmethod
     def _include_ic(architecture: TurbofanArchitecture, location: int, radius: float, length: float, number: int):
 
@@ -97,13 +111,13 @@ class IntercoolerChoice(ArchitectingChoice):
         compressor = architecture.get_elements_by_type(Compressor)[-1-1*location]
         fan_splitter = architecture.get_elements_by_type(Splitter)[0]
 
-        # Calculate heat exchanger area and overall transfer coefficient
-        area = 2*np.pi*radius*length*number*1550  # inch2
-        h_overall = 0.00002
+        # Set overall heat transfer coefficient
+        h_overall = 400  # [W/m2K]
 
         # Create new elements: the intercooler
         intercooler = HeatExchanger(
-            name='intercooler', fluid=compressor, coolant=fan_splitter, area=area, h_overall=h_overall
+            name='intercooler', fluid=compressor, coolant=fan_splitter, length=length,
+            radius=radius, number=number, h_overall=h_overall
         )
 
         # Reroute flows

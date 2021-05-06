@@ -40,7 +40,10 @@ class Weight:
         # Check whether gearbox and heat exchanger are present
         gear = False if not self.architecture.get_elements_by_type(Gearbox) else True
         hex = False if not self.architecture.get_elements_by_type(HeatExchanger) else True
-        hex_area = self.architecture.get_elements_by_type(HeatExchanger)[0].area if hex else 0
+        hex_length = self.architecture.get_elements_by_type(HeatExchanger)[0].length if hex else 0
+        hex_radius = self.architecture.get_elements_by_type(HeatExchanger)[0].radius if hex else 0
+        hex_number = self.architecture.get_elements_by_type(HeatExchanger)[0].number if hex else 0
+        hex_area = 2*np.pi*hex_radius*hex_length*hex_number
 
         # Check if fan and CRTF are present
         fan_present = False

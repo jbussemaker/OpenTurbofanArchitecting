@@ -20,6 +20,7 @@ import openmdao.api as om
 from typing import *
 import pycycle.api as pyc
 from dataclasses import dataclass, field
+import open_turb_arch.evaluation.architecture.units as units
 from open_turb_arch.evaluation.architecture.architecture import ArchElement
 
 __all__ = ['Inlet', 'Duct', 'Splitter', 'Mixer', 'BleedInter', 'BleedIntra', 'Nozzle', 'NozzleType', 'HeatExchanger']
@@ -221,8 +222,12 @@ class HeatExchanger(ArchElement):
     target_coolant: ArchElement = None
     fluid: ArchElement = None
     coolant: ArchElement = None
-    area: float = 0.1  # Total area of heat exchanger
+    length: float = 0.1  # Length of heat exchanger tube
+    radius: float = 0.1  # Radius of heat exchanger tube
+    number: int = 4  # Number of heat exchanger tubes
     h_overall: float = 1/100  # Overall heat transfer coefficient
+    ff_core: float = 0.0005  # Core friction factor
+    ff_bypass: float = 0.005  # Bypass friction factor
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         el = pyc.HeatExchanger(thermo_data=thermo_data, Fl_I1_elements=pyc.AIR_ELEMENTS, Fl_I2_elements=pyc.AIR_ELEMENTS)
@@ -234,8 +239,12 @@ class HeatExchanger(ArchElement):
         self._connect_flow_target(cycle, self.target_coolant, out_flow='Fl_O2')
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
-        mp_cycle.pyc_add_cycle_param(self.name+'.area', self.area)
-        mp_cycle.pyc_add_cycle_param(self.name+'.h_overall', self.h_overall)
+        mp_cycle.pyc_add_cycle_param(self.name+'.length_hex', self.length, units=units.LENGTH)
+        mp_cycle.pyc_add_cycle_param(self.name+'.radius_hex', self.radius, units=units.LENGTH)
+        mp_cycle.pyc_add_cycle_param(self.name+'.number_hex', self.number)
+        mp_cycle.pyc_add_cycle_param(self.name+'.h_overall', self.h_overall, units=units.HTC)
+        mp_cycle.pyc_add_cycle_param(self.name+'.ff_core', self.ff_core)
+        mp_cycle.pyc_add_cycle_param(self.name+'.ff_bypass', self.ff_bypass)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         pass

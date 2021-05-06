@@ -26,4 +26,5 @@ PRESSURE = 'Pa'
 HP = 'hp'
 AREA = 'm*m'
 VELOCITY = 'm/s'
-
+LENGTH = 'm'
+HTC = 'W/(m*m*K)'
