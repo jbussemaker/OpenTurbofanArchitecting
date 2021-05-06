@@ -339,6 +339,7 @@ class ArchitectureVisualizer:
 
             if isinstance(compressor, Compressor):
                 if self._is_fan(compressor):
+                    start = compressor.target
                     continue
                 return compressor
 
