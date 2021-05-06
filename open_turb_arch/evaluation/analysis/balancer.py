@@ -180,28 +180,29 @@ class OffDesignBalancer(Balancer):
         nozzle_names = [el.name for el in architecture.elements if isinstance(el, Nozzle)]
         inlet_names = [el.name for el in architecture.elements if isinstance(el, Inlet)]
         splitter_names = [el.name for el in architecture.elements if isinstance(el, Splitter)]
+        mixer_names = [el.name for el in architecture.elements if isinstance(el, Mixer)]
 
-        if len(inlet_names)+len(splitter_names) != len(nozzle_names):
-            raise RuntimeError('Number of inlets + number of splitters should be same as number of nozzles')
+        if len(inlet_names)+len(splitter_names)+len(mixer_names) != len(nozzle_names):
+            raise RuntimeError('Number of inlets + number of splitters + number of mixers should be same as number of nozzles')
 
-        for i, (is_inlet, el_name) in enumerate([(True, name) for name in inlet_names]+
-                                                [(False, name) for name in splitter_names]):
-            base_name = 'W' if is_inlet else 'BPR'
+        for i, (component, el_name) in enumerate([('inlet', name) for name in inlet_names]+
+                                                 [('splitter', name) for name in splitter_names]+
+                                                 [('mixer', name) for name in mixer_names]):
+            base_name = 'W' if component == 'inlet' else ('BPR' if component == 'splitter' else 'ER')
             param_name = '%s_%d' % (base_name, i)
 
-            yield is_inlet, el_name, nozzle_names[i], param_name
+            yield component, el_name, nozzle_names[i], param_name
 
     def _balance_areas(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
         """
         Areas are balanced by making sure mass flows are correct. Assumptions:
         - There is 1 inlet
         - For every additional (>1) nozzle, there is a splitter (after the inlet)
-        - Number of inlets + number of splitters = number of nozzles
-
-        NOTE: this therefore does not work if there are any flow mixers!
+        - For every mixer, there is an additional nozzle (after the inlet)
+        - Number of inlets + number of splitters + number of mixers = number of nozzles
         """
-        for is_inlet, el_name, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
-            if is_inlet:
+        for component, el_name, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
+            if component == 'inlet':
                 # Add a balance for W (mass flow rate)
                 balance.add_balance(param_name, units=units.MASS_FLOW, eq_units='inch**2', lower=5., upper=500.,
                                     val=self._init_mass_flow)
@@ -209,7 +210,7 @@ class OffDesignBalancer(Balancer):
                 # Use the balance parameter to control the inlet mass flow rate
                 cycle.connect('%s.%s' % (balance.name, param_name), el_name+'.Fl_I:stat:W')
 
-            else:
+            elif component == 'splitter':
                 # Add a balance for BPR (bypass ratio)
                 balance.add_balance(param_name, val=self._init_bpr, lower=1., upper=30., eq_units='inch**2')
 
@@ -217,7 +218,8 @@ class OffDesignBalancer(Balancer):
                 cycle.connect('%s.%s' % (balance.name, param_name), el_name+'.BPR')
 
             # To force the nozzle area equal to the design point
-            cycle.connect(nozzle_name+'.Throat:stat:area', '%s.lhs:%s' % (balance.name, param_name))
+            if component != 'mixer':
+                cycle.connect(nozzle_name+'.Throat:stat:area', '%s.lhs:%s' % (balance.name, param_name))
 
     def _connect_balance_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         connect_key = 'nozzle_area'
@@ -225,8 +227,9 @@ class OffDesignBalancer(Balancer):
             return
         mp_cycle.balance_connected_des_od.add(connect_key)
 
-        for _, _, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
-            mp_cycle.pyc_connect_des_od(nozzle_name+'.Throat:stat:area', '%s.rhs:%s' % (self.balance_name, param_name))
+        for component, _, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
+            if component != 'mixer':
+                mp_cycle.pyc_connect_des_od(nozzle_name+'.Throat:stat:area', '%s.rhs:%s' % (self.balance_name, param_name))
 
     def _balance_shaft_power(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
                              architecture: TurbofanArchitecture):

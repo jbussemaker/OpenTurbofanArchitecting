@@ -116,8 +116,8 @@ class Mixer(ArchElement):
         self._connect_flow_target(cycle, self.target)
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area1')
-        mp_cycle.pyc_connect_des_od(self.name+'.Fl_I1_calc:stat:area', self.name+'Fl_I1_stat_calc.area')
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
+        mp_cycle.pyc_connect_des_od(self.name+'.Fl_I1_calc:stat:area', self.name+'.Fl_I1_stat_calc.area')
 
 
 @dataclass(frozen=False)

@@ -189,7 +189,7 @@ class Gearbox(BaseTurboMachinery):
         cycle.connect(self.name+'.trq_out', '%s.trq_%d' % (self.fan_shaft.name, 1))    # Fan
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
-        mp_cycle.pyc_connect_des_od(self.name+'.gear_ratio', self.name+'.gear_ratio')
+        pass
 
 
 @dataclass(frozen=False)
