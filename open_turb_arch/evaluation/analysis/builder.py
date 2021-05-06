@@ -23,6 +23,7 @@ import pycycle.api as pyc
 from ordered_set import OrderedSet
 from dataclasses import dataclass, field
 import open_turb_arch.evaluation.architecture.units as units
+from open_turb_arch.evaluation.architecture.turbomachinery import *
 from open_turb_arch.evaluation.architecture.architecture import *
 
 __all__ = ['CycleBuilder', 'ArchitectureCycle', 'ArchitectureMultiPointCycle', 'OperatingCondition', 'DesignCondition',
@@ -120,12 +121,18 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
+    area_inlet: float = None  # Engine inlet area [m2]
     area_jet: float = None  # Outlet area of the jet nozzle [m2]
     v_jet: float = None  # Outlet velocity of the jet nozzle [m/s]
+    mach_jet: float = None  # Outlet mach number of the jet nozzle
     p_atm: float = None  # Atmospheric pressure [Pa]
     t_atm: float = None  # Atmospheric temperature [degC]
     p_burner_in: float = None  # Burner inlet pressure [Pa]
     t_burner_in: float = None  # Burner inlet temperature [degC]
+    p_itb_in: float = None  # Inter-turbine burner inlet pressure [Pa]
+    t_itb_in: float = None  # Inter-turbine burner inlet temperature [degC]
+    p_ab_in: float = None  # Afterburner inlet pressure [Pa]
+    t_ab_in: float = None  # Afterburner inlet temperature [degC]
     p_jet: float = None  # Jet nozzle exit pressure [Pa]
     t_jet: float = None  # Jet nozzle exit temperature [degC]
 
@@ -248,6 +255,8 @@ class ArchitectureCycle(pyc.Cycle):
         self._print_performance(problem, fp=fp)
 
         flow_stations = ['%s.fc.Fl_O' % self.name]
+        massflow_inlet = problem.get_val('%s.inlet.Fl_O:stat:W' % self.name, get_remote=None),
+        problem.set_val(self.name+'.fc.Fl_O:stat:W', massflow_inlet)
         element: om.Group
         sub_sys: om.Group
         for element in self._elements:
@@ -311,32 +320,37 @@ class ArchitectureCycle(pyc.Cycle):
         def _float(val):
             return float(np.atleast_1d(val)[0])
 
-        metrics = []
-        for component in ['fc', 'compressor', 'nozzle_core']:
-            fs_name = '%s.%s.Fl_O' % (self.name, component)
-            pressure = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:P'), units=units.PRESSURE, get_remote=None))
-            temperature = _float(problem.get_val('{}:{}'.format(fs_name, 'tot:T'), units=units.TEMPERATURE, get_remote=None))
-            metrics.extend([pressure, temperature])
-            if component == 'nozzle_core':
-                area = _float(problem.get_val('{}:{}'.format(fs_name, 'stat:area'), units=units.AREA, get_remote=None))
-                velocity = _float(problem.get_val('{}:{}'.format(fs_name, 'stat:V'), units=units.VELOCITY, get_remote=None))
-                metrics.extend([area, velocity])
+        # Check if ITB and AB are present
+        itb_present = False
+        ab_present = False
+        burners = self.architecture.get_elements_by_type(Burner)
+        for burner in range(len(burners)):
+            if burners[burner].name == 'itb':
+                itb_present = True
+            elif burners[burner].name == 'ab':
+                ab_present = True
 
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
+            area_inlet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, self.inlet_el_name), units=units.AREA, get_remote=None)),
             mass_flow=_float(problem.get_val('%s.%s.Fl_O:stat:W' % (self.name, self.inlet_el_name),
                                              units=units.MASS_FLOW, get_remote=None)),
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),
-            area_jet=metrics[6],
-            v_jet=metrics[7],
-            p_atm=metrics[0],
-            t_atm=metrics[1],
-            p_burner_in=metrics[2],
-            t_burner_in=metrics[3],
-            p_jet=metrics[4],
-            t_jet=metrics[5]
+            area_jet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, 'nozzle_core'), units=units.AREA, get_remote=None)),
+            v_jet=_float(problem.get_val('%s.%s.Fl_O:stat:V' % (self.name, 'nozzle_core'), units=units.VELOCITY, get_remote=None)),
+            mach_jet=_float(problem.get_val('%s.%s.Fl_O:stat:MN' % (self.name, 'nozzle_core'), get_remote=None)),
+            p_atm=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'fc'), units=units.PRESSURE, get_remote=None)),
+            t_atm=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'fc'), units=units.TEMPERATURE, get_remote=None)),
+            p_burner_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'burner'), units=units.PRESSURE, get_remote=None)),
+            t_burner_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'burner'), units=units.TEMPERATURE, get_remote=None)),
+            p_itb_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'itb'), units=units.PRESSURE, get_remote=None)) if itb_present else 0,
+            t_itb_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'itb'), units=units.TEMPERATURE, get_remote=None)) if itb_present else 0,
+            p_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'ab'), units=units.PRESSURE, get_remote=None)) if ab_present else 0,
+            t_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'ab'), units=units.TEMPERATURE, get_remote=None)) if ab_present else 0,
+            p_jet=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'nozzle_core'), units=units.PRESSURE, get_remote=None)),
+            t_jet=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'nozzle_core'), units=units.TEMPERATURE, get_remote=None)),
         )
 
 

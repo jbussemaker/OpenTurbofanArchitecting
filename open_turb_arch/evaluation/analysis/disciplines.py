@@ -17,6 +17,7 @@ Contact: jasper.bussemaker@dlr.de
 
 
 from math import *
+import numpy as np
 from dataclasses import dataclass
 from open_turb_arch.evaluation.architecture import *
 from open_turb_arch.evaluation.analysis import *
@@ -71,19 +72,20 @@ class Weight:
             a = (-6.204*10**(-1))*bpr**2 + (2.373*10**2)*bpr + 1702
             b = (5.845*10**(-5))*bpr**2 - (5.866*10**(-3))*bpr + 1.045
             c = (-1.918*10**(-3))*bpr + 0.0677
-        weight_engine = (a*(massflow*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
+        massflow_core = massflow/(1+bpr)
+        weight_engine = (a*(massflow_core*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
 
         # Add engine weight changes based on MIT component weights, unless mentioned otherwise
         if not fan_present:  # Turbojet
             weight_engine *= 0.75
-        if len(self.architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
-            weight_engine *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-1)
+        if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
+            weight_engine *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
             weight_engine *= 1.05**(len(self.architecture.get_elements_by_type(Burner))-1)
         if crtf_present:  # CRTF
             weight_engine *= 1.1  # Based on EU project COBRA: https://cordis.europa.eu/project/id/605379/reporting
         if hex_area != 0:  # intercooler
-            weight_engine += hex_area/1550*0.002*4510*10  # titanium density = 4510 kg/m3, intercooler pipe thickness = 2 mm, pipes = 10% of installation
+            weight_engine += hex_area*0.001*4510*10  # titanium density = 4510 kg/m3, intercooler pipe thickness = 1 mm, pipes = 10% of installation
 
         # Get nacelle lengths and diameters
         l_fancowl = Length(self.ops_metrics, self.architecture).length_calculation()[1]
@@ -159,8 +161,8 @@ class Length:
         # Add length changes based on estimated component lengths, unless mentioned otherwise
         if not fan_present:  # Turbojet
             l_nacelle *= 0.75
-        if len(self.architecture.get_elements_by_type(Turbine)) != 1:  # Multiple shafts
-            l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-1)
+        if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
+            l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
             l_nacelle *= 1.05**(len(self.architecture.get_elements_by_type(Burner))-1)
         if crtf_present:  # CRTF
@@ -198,13 +200,14 @@ class Diameter:
 
         # Get massflow rate and BPR
         massflow = self.ops_metrics.mass_flow
+        area_inlet = self.ops_metrics.area_inlet
         bpr = self.architecture.get_elements_by_type(Splitter)[0].bpr if fan_present else 0
 
-        return fan_present, config, massflow, bpr
+        return fan_present, config, massflow, area_inlet, bpr
 
     def diameter_calculation(self):
 
-        fan_present, config, massflow, bpr = self.check_architecture()
+        fan_present, config, massflow, area_inlet, bpr = self.check_architecture()
         l_nacelle = Length(self.ops_metrics, self.architecture).length_calculation()[0]
         phi = 1 if not fan_present else (1 if config == 'mixed' else 0.625)
 
@@ -214,8 +217,7 @@ class Diameter:
         c_atm = sqrt(1.4*287.05*t_atm)
 
         # Calculate maximum diameter with TU Delft equation
-        dsdi = 0.05*(1 + 0.1*rho_atm*c_atm/massflow + 3*bpr/(1+bpr))
-        d_inlet = 1.65*sqrt((massflow/rho_atm/c_atm+0.005)/(1-dsdi**2))  # Nacelle inlet diameter
+        d_inlet = sqrt(4/pi*area_inlet)  # Nacelle inlet diameter
         d_max = d_inlet + 0.06*phi*l_nacelle + 0.03  # Maximum nacelle diameter
         d_fan_outlet = d_max*(1-(1/3)*phi**2)  # Fan exit diameter
         d_gg_inlet = d_fan_outlet*((0.089*massflow/rho_atm/c_atm*bpr+4.5)/(0.067*massflow/rho_atm/c_atm*bpr+5.8))**2  # Gas generator inlet diameter
@@ -235,19 +237,26 @@ class NOx:
     def check_architecture(self):
 
         # Get pressure and temperature from operating metrics
-        pressure = self.ops_metrics.p_burner_in/10**3  # burner inlet pressure [kPa]
-        temperature = self.ops_metrics.t_burner_in+273.15  # burner inlet temperature [K]
+        p_burner = self.ops_metrics.p_burner_in/10**3  # main burner inlet pressure [kPa]
+        t_burner = self.ops_metrics.t_burner_in+273.15  # main burner inlet temperature [K]
+        p_itb = self.ops_metrics.p_itb_in/10**3  # ITB inlet pressure [kPa]
+        t_itb = self.ops_metrics.t_itb_in+273.15  # ITB inlet temperature [K]
+        p_ab = self.ops_metrics.p_ab_in/10**3  # AB inlet pressure [kPa]
+        t_ab = self.ops_metrics.t_ab_in+273.15  # AB inlet temperature [K]
 
-        return pressure, temperature
+        return p_burner, t_burner, p_itb, t_itb, p_ab, t_ab
 
     def NOx_calculation(self):
 
-        pressure, temperature = self.check_architecture()
+        p_burner, t_burner, p_itb, t_itb, p_ab, t_ab = self.check_architecture()
 
         # Calculate NOx with GasTurb equation
-        NOx = 32*(pressure/2964.5)**0.4*exp((temperature-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
+        NOx_burner = 32*(p_burner/2964.5)**0.4*exp((t_burner-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
+        NOx_itb = 32*(p_itb/2964.5)**0.4*exp((t_itb-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
+        NOx_ab = 32*(p_ab/2964.5)**0.4*exp((t_ab-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
+        NOx_total = NOx_burner+NOx_itb+NOx_ab
 
-        return NOx  # (gram NOx)/kN
+        return NOx_total  # (gram NOx)/kN
 
 
 @dataclass(frozen=False)
