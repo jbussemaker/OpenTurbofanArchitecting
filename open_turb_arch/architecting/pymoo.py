@@ -116,10 +116,12 @@ class PymooArchitectingProblem(Problem):
         x_out = np.empty((n, self.n_var))
         f_out = np.empty((n, self.n_obj))
         g_out = np.empty((n, self.n_constr)) if self.n_constr > 0 else None
+        eval_ids = np.empty((n,), dtype=np.int)
 
         for i in range(n):
             x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x[i, :])]
             imputed_design_vector, objectives, constraints, _ = self.problem.evaluate(x_arch)
+            eval_ids[i] = self.problem.get_last_eval_id() or -1
 
             # Correct directions of objectives to represent minimization
             objectives = [-val if self.obj_is_max[j] else val for j, val in enumerate(objectives)]
@@ -136,6 +138,7 @@ class PymooArchitectingProblem(Problem):
         # Set output
         out['X'] = x_out
         out['F'] = f_out
+        out['ID'] = eval_ids
         if self.n_constr > 0:
             out['G'] = g_out
 

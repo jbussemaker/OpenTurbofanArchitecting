@@ -48,6 +48,7 @@ if __name__ == '__main__':
             'numpy',
             'Platypus-Opt',
             'pymoo',
+            'lxml',
         ],
         python_requires='>=3.6',
         packages=find_packages(),

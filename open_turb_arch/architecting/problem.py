@@ -15,7 +15,11 @@ Copyright: (c) 2020, Deutsches Zentrum fuer Luft- und Raumfahrt e.V.
 Contact: jasper.bussemaker@dlr.de
 """
 
+import os
 import copy
+import pickle
+import datetime
+import numpy as np
 from typing import *
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.opt_defs import *
@@ -27,13 +31,19 @@ __all__ = ['ArchitectingProblem']
 
 
 class ArchitectingProblem:
-    """The main turbofan architecting problem class: creates an optimization problem from a set of architecting choices
+    """
+    The main turbofan architecting problem class: creates an optimization problem from a set of architecting choices
     and metrics (as objectives, constraints, or generic metric). Also contains the logic for creating an architecture
-    description from a design variable, and running the evaluation framework to actually evaluate an architecture."""
+    description from a design variable, and running the evaluation framework to actually evaluate an architecture.
+
+    Use `save_results_folder` to store evaluation results (design vector, architecture, results, etc) using pickling.
+    Each result is assigned an ID (file names are results_YYYYMMDD_HHMMSS_ID.pkl), which can be requested using
+    `get_last_eval_id()`.
+    """
 
     def __init__(self, analysis_problem: AnalysisProblem, choices: List[ArchitectingChoice],
                  objectives: List[ArchitectingMetric], constraints: List[ArchitectingMetric] = None,
-                 metrics: List[ArchitectingMetric] = None, max_iter=20):
+                 metrics: List[ArchitectingMetric] = None, max_iter=20, save_results_folder=None):
 
         self._an_problem = analysis_problem
         self.print_results = False
@@ -52,6 +62,15 @@ class ArchitectingProblem:
         self._check_definitions()
 
         self._results_cache = {}
+        self._eval_id_cache = {}
+        self._last_eval_id = None
+        self.save_results_folder = save_results_folder
+
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        state['_results_cache'] = {}
+        state['_eval_id_cache'] = {}
+        return state
 
     @property
     def analysis_problem(self) -> AnalysisProblem:
@@ -147,14 +166,42 @@ class ArchitectingProblem:
         # Return cached evaluation results
         dv_cache = tuple(imputed_design_vector)
         if dv_cache in self._results_cache:
+            self._last_eval_id = self._eval_id_cache[dv_cache]
             return copy.copy(self._results_cache[dv_cache])
 
         # Evaluate architecture
         results = self.evaluate_architecture(architecture)
         obj_values, con_values, met_values = self.extract_metrics(architecture, imputed_design_vector, results)
 
+        eval_id = self._save_results(
+            problem=self,
+            design_vector=design_vector,
+            imputed_design_vector=imputed_design_vector,
+            architecture=architecture,
+            obj_values=obj_values,
+            con_values=con_values,
+            met_values=met_values,
+        )
+
         self._results_cache[dv_cache] = imputed_design_vector, obj_values, con_values, met_values
+        self._eval_id_cache[dv_cache] = self._last_eval_id = eval_id
         return copy.copy(self._results_cache[dv_cache])
+
+    def _save_results(self, **kwargs) -> Optional[int]:
+        if self.save_results_folder is None:
+            return
+
+        os.makedirs(self.save_results_folder, exist_ok=True)
+        eval_id = np.random.randint(1e8, 1e9-1)
+        ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        path = os.path.join(self.save_results_folder, 'results_%s_%d.pkl' % (ts, eval_id))
+        with open(path, 'wb') as fp:
+            pickle.dump(kwargs, fp)
+
+        return eval_id
+
+    def get_last_eval_id(self):
+        return self._last_eval_id
 
     def generate_architecture(self, design_vector: DesignVector) -> Tuple[TurbofanArchitecture, DesignVector]:
         imputed_full_design_vector, decoded_design_vector = self.get_full_design_vector(design_vector)
