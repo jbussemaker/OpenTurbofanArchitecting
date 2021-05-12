@@ -43,7 +43,8 @@ class ArchitectingProblem:
 
     def __init__(self, analysis_problem: AnalysisProblem, choices: List[ArchitectingChoice],
                  objectives: List[ArchitectingMetric], constraints: List[ArchitectingMetric] = None,
-                 metrics: List[ArchitectingMetric] = None, max_iter=20, save_results_folder=None):
+                 metrics: List[ArchitectingMetric] = None, max_iter=20, save_results_folder=None,
+                 save_results_combined=None):
 
         self._an_problem = analysis_problem
         self.print_results = False
@@ -65,6 +66,7 @@ class ArchitectingProblem:
         self._eval_id_cache = {}
         self._last_eval_id = None
         self.save_results_folder = save_results_folder
+        self.save_results_combined = save_results_combined
 
     def __getstate__(self):
         state = copy.copy(self.__dict__)
@@ -170,8 +172,13 @@ class ArchitectingProblem:
             return copy.copy(self._results_cache[dv_cache])
 
         # Evaluate architecture
-        results = self.evaluate_architecture(architecture)
-        obj_values, con_values, met_values = self.extract_metrics(architecture, imputed_design_vector, results)
+        try:
+            results = self.evaluate_architecture(architecture)
+            obj_values, con_values, met_values = self.extract_metrics(architecture, imputed_design_vector, results)
+        except:
+            obj_values = np.zeros((len(self.opt_objectives),))*np.nan
+            con_values = np.zeros((len(self.opt_constraints),))*np.nan
+            met_values = np.zeros((len(self.opt_metrics),))*np.nan
 
         eval_id = self._save_results(
             problem=self,
@@ -194,9 +201,25 @@ class ArchitectingProblem:
         os.makedirs(self.save_results_folder, exist_ok=True)
         eval_id = np.random.randint(1e8, 1e9-1)
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        path = os.path.join(self.save_results_folder, 'results_%s_%d.pkl' % (ts, eval_id))
-        with open(path, 'wb') as fp:
-            pickle.dump(kwargs, fp)
+        path = os.path.join(self.save_results_folder, 'results_%s_%d.txt' % (ts, eval_id))
+        f = open(path, 'a')
+        f.write(str(kwargs))
+        f.close()
+
+        if self.save_results_combined:
+            path_combo = os.path.join(self.save_results_folder, 'results_combined.txt')
+            f = open(path_combo, 'a')
+            f.write(str(kwargs)+'\n\n')
+            f.close()
+
+        # path = os.path.join(self.save_results_folder, 'results_%s_%d.pkl' % (ts, eval_id))
+        # with open(path, 'wb') as fp:
+        #     pickle.dump(kwargs, fp)
+
+        # if self.save_results_combined:
+        #     path_combo = os.path.join(self.save_results_folder, 'results_combined.pkl')
+        #     with open(path_combo, 'wb') as fp:
+        #         pickle.dump(kwargs, fp)
 
         return eval_id
 
@@ -271,11 +294,17 @@ class ArchitectingProblem:
 
         objective_values = []
         for metric in self.objectives:
-            objective_values += list(metric.extract_obj(self.analysis_problem, results, architecture))
+            try:
+                objective_values += list(metric.extract_obj(self.analysis_problem, results, architecture))
+            except:
+                objective_values.append(np.nan)
 
         constraint_values = []
         for metric in self.constraints:
-            constraint_values += list(metric.extract_con(self.analysis_problem, results, architecture))
+            try:
+                constraint_values += list(metric.extract_con(self.analysis_problem, results, architecture))
+            except:
+                constraint_values.append(np.nan)
 
         _, full_decoded_design_vector = self.get_full_design_vector(imputed_design_vector)
         i_dv = 0
@@ -289,6 +318,9 @@ class ArchitectingProblem:
 
         metric_values = []
         for metric in self.metrics:
-            metric_values += list(metric.extract_met(self.analysis_problem, results, architecture))
+            try:
+                metric_values += list(metric.extract_met(self.analysis_problem, results, architecture))
+            except:
+                metric_values.append(np.nan)
 
         return objective_values, constraint_values, metric_values
