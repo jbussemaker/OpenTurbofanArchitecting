@@ -504,6 +504,58 @@ def test_pymoo_problem(an_problem):
 
     evaluator = Evaluator()
     evaluator.eval(pymoo_problem, pop)
+    assert len(problem._results_cache) > 0
+
+    x = pop.get('X')
+    assert x.shape == (100, 3)
+    dv1 = x[:, 0]
+    assert np.all(x[:, 1] == 0)
+    assert np.all(x[:, 2] == 1)
+
+    assert all([pop[i].F is not None for i in range(len(pop))])
+    f = pop.get('F')
+    assert f.shape == (100, 1)
+    assert np.all(f[:, 0] == (.10*dv1))
+
+    g = pop.get('G')
+    assert g.shape == (100, 1)
+    assert np.all(g[:, 0] == (.15*dv1-.05))
+
+    repair = pymoo_problem.get_repair()
+    pop = sampling.do(pymoo_problem, 100)
+    x1 = pop.get('X')[:, 1]
+    assert not np.all(np.round(x1) == x1)
+
+    pop_repaired = repair.do(pymoo_problem, pop)
+    x1 = pop_repaired.get('X')[:, 1]
+    assert np.all(np.round(x1) == x1)
+
+
+def test_pymoo_parallel_eval(an_problem):
+    import multiprocessing
+    from pymoo.model.evaluator import Evaluator
+    from pymoo.operators.sampling.random_sampling import FloatRandomSampling
+
+    problem = ArchitectureProblemTester(
+        analysis_problem=an_problem,
+        choices=[DummyChoice()],
+        objectives=[DummyMetric()],
+        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
+        metrics=[DummyMetric()],
+    )
+
+    pymoo_problem = problem.get_pymoo_problem()
+    assert isinstance(pymoo_problem, PymooArchitectingProblem)
+
+    pool = multiprocessing.Pool(2)
+    pymoo_problem.parallelization = ('starmap', pool.starmap)
+
+    sampling = FloatRandomSampling()
+    pop = sampling.do(pymoo_problem, 100)
+    assert len(pop) == 100
+
+    Evaluator().eval(pymoo_problem, pop)
+    assert len(problem._results_cache) > 0
 
     x = pop.get('X')
     assert x.shape == (100, 3)

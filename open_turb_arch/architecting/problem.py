@@ -21,6 +21,7 @@ import pickle
 import datetime
 import numpy as np
 from typing import *
+import multiprocessing
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.analysis.builder import *
@@ -61,16 +62,11 @@ class ArchitectingProblem:
 
         self._check_definitions()
 
-        self._results_cache = {}
-        self._eval_id_cache = {}
+        manager = multiprocessing.Manager()
+        self._results_cache = manager.dict()
+        self._eval_id_cache = manager.dict()
         self._last_eval_id = None
         self.save_results_folder = save_results_folder
-
-    def __getstate__(self):
-        state = copy.copy(self.__dict__)
-        state['_results_cache'] = {}
-        state['_eval_id_cache'] = {}
-        return state
 
     @property
     def analysis_problem(self) -> AnalysisProblem:
@@ -173,6 +169,8 @@ class ArchitectingProblem:
         results = self.evaluate_architecture(architecture)
         obj_values, con_values, met_values = self.extract_metrics(architecture, imputed_design_vector, results)
 
+        cache = self._results_cache, self._eval_id_cache
+        self._results_cache = self._eval_id_cache = None  # To prevent pickling the results cache
         eval_id = self._save_results(
             problem=self,
             design_vector=design_vector,
@@ -182,6 +180,7 @@ class ArchitectingProblem:
             con_values=con_values,
             met_values=met_values,
         )
+        self._results_cache, self._eval_id_cache = cache
 
         self._results_cache[dv_cache] = imputed_design_vector, obj_values, con_values, met_values
         self._eval_id_cache[dv_cache] = self._last_eval_id = eval_id
