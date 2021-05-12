@@ -42,7 +42,7 @@ class PymooArchitectingProblem(Problem):
     ```
     """
 
-    def __init__(self, problem: ArchitectingProblem):
+    def __init__(self, problem: ArchitectingProblem, parallelization=None):
         self.problem = problem
 
         n_vars = len(problem.free_opt_des_vars)
@@ -59,7 +59,8 @@ class PymooArchitectingProblem(Problem):
         self.is_discrete_mask = np.bitwise_or(self.is_int_mask, self.is_cat_mask)
         self.is_cont_mask = ~self.is_discrete_mask
 
-        super(PymooArchitectingProblem, self).__init__(n_vars, n_objs, n_constr, xl=xl, xu=xu)
+        super(PymooArchitectingProblem, self).__init__(
+            n_vars, n_objs, n_constr, xl=xl, xu=xu, elementwise_evaluation=True, parallelization=parallelization)
 
         self.obj_is_max = [obj.dir == ObjectiveDirection.MAXIMIZE for obj in problem.opt_objectives]
         self.con_ref = [(con.dir == ConstraintDirection.GREATER_EQUAL_THAN, con.limit_value)
@@ -109,38 +110,24 @@ class PymooArchitectingProblem(Problem):
     def _evaluate(self, x, out, *args, **kwargs):
         # Correct integer design variables
         is_discrete_mask = self.is_discrete_mask
-        x = ArchitectingProblemRepair.correct_x(x, is_discrete_mask)
+        x = ArchitectingProblemRepair.correct_x(np.array([x]), is_discrete_mask)[0, :]
 
         # Evaluate the architecture
-        n = x.shape[0]
-        x_out = np.empty((n, self.n_var))
-        f_out = np.empty((n, self.n_obj))
-        g_out = np.empty((n, self.n_constr)) if self.n_constr > 0 else None
-        eval_ids = np.empty((n,), dtype=np.int)
+        x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x)]
+        imputed_design_vector, objectives, constraints, _ = self.problem.evaluate(x_arch)
+        out['ID'] = self.problem.get_last_eval_id() or -1
 
-        for i in range(n):
-            x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x[i, :])]
-            imputed_design_vector, objectives, constraints, _ = self.problem.evaluate(x_arch)
-            eval_ids[i] = self.problem.get_last_eval_id() or -1
+        # Correct directions of objectives to represent minimization
+        objectives = [-val if self.obj_is_max[j] else val for j, val in enumerate(objectives)]
 
-            # Correct directions of objectives to represent minimization
-            objectives = [-val if self.obj_is_max[j] else val for j, val in enumerate(objectives)]
+        # Correct directions and offset constraints to represent g(x) <= 0
+        constraints = [(val-self.con_ref[j][1])*(-1 if self.con_ref[j][0] else 1)
+                       for j, val in enumerate(constraints)]
 
-            # Correct directions and offset constraints to represent g(x) <= 0
-            constraints = [(val-self.con_ref[j][1])*(-1 if self.con_ref[j][0] else 1)
-                           for j, val in enumerate(constraints)]
-
-            x_out[i, :] = [float(val) for val in imputed_design_vector]
-            f_out[i, :] = objectives
-            if len(constraints) > 0:
-                g_out[i, :] = constraints
-
-        # Set output
-        out['X'] = x_out
-        out['F'] = f_out
-        out['ID'] = eval_ids
-        if self.n_constr > 0:
-            out['G'] = g_out
+        out['X'] = [float(val) for val in imputed_design_vector]
+        out['F'] = objectives
+        if len(constraints) > 0:
+            out['G'] = constraints
 
 
 class ArchitectingProblemRepair(Repair):
