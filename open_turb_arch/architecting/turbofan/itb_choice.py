@@ -46,7 +46,7 @@ class ITBChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 7
+        return 6
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:

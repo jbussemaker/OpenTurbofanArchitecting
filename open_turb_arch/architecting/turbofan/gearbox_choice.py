@@ -46,7 +46,7 @@ class GearboxChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 3
+        return 4
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
@@ -71,15 +71,17 @@ class GearboxChoice(ArchitectingChoice):
     def _include_gearbox(architecture: TurbofanArchitecture, gear_ratio: float):
 
         # Find necessary elements
-        fan = None
+        fan = crtf = None
         compressors = architecture.get_elements_by_type(Compressor)
         for compressor in range(len(compressors)):
             if compressors[compressor].name == 'fan':
                 fan = architecture.get_elements_by_type(Compressor)[compressor]
+            if compressors[compressor].name == 'crtf':
+                crtf = architecture.get_elements_by_type(Compressor)[compressor]
         core_shaft = architecture.get_elements_by_type(Shaft)[0]
 
         # Disconnect fan from LP_shaft
-        del core_shaft.connections[-1]
+        del core_shaft.connections[core_shaft.connections.index(fan)]
 
         # Create new elements: the fan shaft and gearbox
         fan_shaft = Shaft(
@@ -95,3 +97,10 @@ class GearboxChoice(ArchitectingChoice):
 
         architecture.elements.insert(architecture.elements.index(core_shaft), fan_shaft)
         architecture.elements.insert(architecture.elements.index(fan_shaft), gearbox)
+
+        if crtf is not None:
+            # Disconnect crtf from LP_shaft
+            del core_shaft.connections[core_shaft.connections.index(crtf)]
+
+            # Connect crtf to fan shaft
+            fan_shaft.connections.append(crtf)

@@ -111,6 +111,13 @@ class IntercoolerChoice(ArchitectingChoice):
         compressor = architecture.get_elements_by_type(Compressor)[-1-1*location]
         fan_splitter = architecture.get_elements_by_type(Splitter)[0]
 
+        # Check if mixed nozzle is present
+        mixed_nozzle = False
+        nozzles = architecture.get_elements_by_type(Nozzle)
+        for nozzle in range(len(nozzles)):
+            if nozzles[nozzle].name == 'nozzle_joint':
+                mixed_nozzle = True
+
         # Set overall heat transfer coefficient
         h_overall = 400  # [W/m2K]
 
@@ -127,6 +134,8 @@ class IntercoolerChoice(ArchitectingChoice):
         compressor.target = intercooler
         fan_splitter.flow_out = 'Fl_I2'
         fan_splitter.target_bypass = intercooler
+        if mixed_nozzle:
+            intercooler.flow_out_coolant = 'Fl_I2'
 
         # Add intercooler to the architecture elements
         architecture.elements.insert(architecture.elements.index(compressor)+1, intercooler)

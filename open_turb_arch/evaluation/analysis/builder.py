@@ -24,6 +24,7 @@ from ordered_set import OrderedSet
 from dataclasses import dataclass, field
 import open_turb_arch.evaluation.architecture.units as units
 from open_turb_arch.evaluation.architecture.turbomachinery import *
+from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.architecture import *
 
 __all__ = ['CycleBuilder', 'ArchitectureCycle', 'ArchitectureMultiPointCycle', 'OperatingCondition', 'DesignCondition',
@@ -244,6 +245,7 @@ class ArchitectureCycle(pyc.Cycle):
         newton.options['solve_subsystems'] = True
         newton.options['max_sub_solves'] = 100
         newton.options['reraise_child_analysiserror'] = False
+        newton.options['err_on_non_converge'] = True
 
         ls = newton.linesearch = om.ArmijoGoldsteinLS()
         ls.options['maxiter'] = 3
@@ -320,7 +322,7 @@ class ArchitectureCycle(pyc.Cycle):
         def _float(val):
             return float(np.atleast_1d(val)[0])
 
-        # Check if ITB and AB are present
+        # Check if ITB, AB and mixed nozzle are present
         itb_present = False
         ab_present = False
         burners = self.architecture.get_elements_by_type(Burner)
@@ -329,6 +331,11 @@ class ArchitectureCycle(pyc.Cycle):
                 itb_present = True
             elif burners[burner].name == 'ab':
                 ab_present = True
+        mixed_nozzle = False
+        nozzles = self.architecture.get_elements_by_type(Nozzle)
+        for nozzle in range(len(nozzles)):
+            if nozzles[nozzle].name == 'nozzle_joint':
+                mixed_nozzle = True
 
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
@@ -338,9 +345,9 @@ class ArchitectureCycle(pyc.Cycle):
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),
-            area_jet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, 'nozzle_core'), units=units.AREA, get_remote=None)),
-            v_jet=_float(problem.get_val('%s.%s.Fl_O:stat:V' % (self.name, 'nozzle_core'), units=units.VELOCITY, get_remote=None)),
-            mach_jet=_float(problem.get_val('%s.%s.Fl_O:stat:MN' % (self.name, 'nozzle_core'), get_remote=None)),
+            area_jet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.AREA, get_remote=None)),
+            v_jet=_float(problem.get_val('%s.%s.Fl_O:stat:V' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.VELOCITY, get_remote=None)),
+            mach_jet=_float(problem.get_val('%s.%s.Fl_O:stat:MN' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), get_remote=None)),
             p_atm=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'fc'), units=units.PRESSURE, get_remote=None)),
             t_atm=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'fc'), units=units.TEMPERATURE, get_remote=None)),
             p_burner_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'burner'), units=units.PRESSURE, get_remote=None)),
@@ -349,8 +356,8 @@ class ArchitectureCycle(pyc.Cycle):
             t_itb_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'itb'), units=units.TEMPERATURE, get_remote=None)) if itb_present else 0,
             p_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'ab'), units=units.PRESSURE, get_remote=None)) if ab_present else 0,
             t_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'ab'), units=units.TEMPERATURE, get_remote=None)) if ab_present else 0,
-            p_jet=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'nozzle_core'), units=units.PRESSURE, get_remote=None)),
-            t_jet=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'nozzle_core'), units=units.TEMPERATURE, get_remote=None)),
+            p_jet=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.PRESSURE, get_remote=None)),
+            t_jet=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.TEMPERATURE, get_remote=None)),
         )
 
 

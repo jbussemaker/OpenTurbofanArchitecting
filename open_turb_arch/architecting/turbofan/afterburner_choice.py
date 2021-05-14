@@ -46,7 +46,7 @@ class AfterburnerChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 6
+        return 5
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:

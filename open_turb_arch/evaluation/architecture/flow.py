@@ -228,6 +228,8 @@ class HeatExchanger(ArchElement):
     h_overall: float = 1/100  # Overall heat transfer coefficient
     ff_core: float = 0.0005  # Core friction factor
     ff_bypass: float = 0.005  # Bypass friction factor
+    flow_out_fluid: str = None
+    flow_out_coolant: str = None
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
         el = pyc.HeatExchanger(thermo_data=thermo_data, Fl_I1_elements=pyc.AIR_ELEMENTS, Fl_I2_elements=pyc.AIR_ELEMENTS)
@@ -235,8 +237,8 @@ class HeatExchanger(ArchElement):
         return el
 
     def connect(self, cycle: pyc.Cycle):
-        self._connect_flow_target(cycle, self.target_fluid, out_flow='Fl_O1')
-        self._connect_flow_target(cycle, self.target_coolant, out_flow='Fl_O2')
+        self._connect_flow_target(cycle, self.target_fluid, out_flow='Fl_O1', in_flow='Fl_I' if self.flow_out_fluid is None else self.flow_out_fluid)
+        self._connect_flow_target(cycle, self.target_coolant, out_flow='Fl_O2', in_flow='Fl_I' if self.flow_out_coolant is None else self.flow_out_coolant)
 
     def add_cycle_params(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_add_cycle_param(self.name+'.length_hex', self.length, units=units.LENGTH)

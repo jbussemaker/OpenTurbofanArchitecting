@@ -32,8 +32,8 @@ class ShaftChoice(ArchitectingChoice):
 
     fixed_number_shafts: int = None  # Fix the number of added shafts
 
-    fixed_opr_core: float = None  # Fix the overall pressure ratio of the core
-    opr_core_bounds: Tuple[float, float] = (1.1, 40)  # Core overall pressure ratio bounds
+    fixed_opr: float = None  # Fix the overall pressure ratio of the engine
+    opr_bounds: Tuple[float, float] = (1.1, 60)  # Overall pressure ratio bounds
 
     fixed_pr_compressor_ip: float = None  # Fix the percentage the IP performs from the overall core pressure ratio
     fixed_pr_compressor_lp: float = None  # Fix the percentage the LP performs from the overall core pressure ratio
@@ -53,8 +53,8 @@ class ShaftChoice(ArchitectingChoice):
                 fixed_value=self.fixed_number_shafts),
 
             ContinuousDesignVariable(
-                'opr_core', bounds=self.opr_core_bounds,
-                fixed_value=self.fixed_opr_core),
+                'opr', bounds=self.opr_bounds,
+                fixed_value=self.fixed_opr),
 
             ContinuousDesignVariable(
                 'pr_compressor_ip', bounds=self.pr_compressor_bounds,
@@ -78,14 +78,27 @@ class ShaftChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 1
+        return 3
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
 
+        # Check if fan is present
+        fan_present = crtf_present = False
+        fan_opr = crtf_opr = 1
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'fan':
+                fan_present = True
+                fan_opr = compressors[compressor].pr
+            if compressors[compressor].name == 'crtf':
+                crtf_present = True
+                crtf_opr = compressors[compressor].pr
+
         # The number of added shafts is always active
-        number_shafts, opr_core, pr_compressor_ip, pr_compressor_lp, rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp = design_vector
+        number_shafts, opr, pr_compressor_ip, pr_compressor_lp, rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp = design_vector
         rpm_shaft = [rpm_shaft_hp, rpm_shaft_ip, rpm_shaft_lp]
+        opr_core = opr/fan_opr/crtf_opr
 
         # Check the pressure ratio percentages
         pr_percentages = [pr_compressor_ip if number_shafts >= 2 else 0, pr_compressor_lp if number_shafts == 3 else 0]
@@ -102,7 +115,7 @@ class ShaftChoice(ArchitectingChoice):
 
         is_active = [True, True, pr_percentages[0], pr_percentages[1], True, number_shafts >= 2, number_shafts == 3]
 
-        self._add_shafts(architecture, number_shafts-1, pr_compressor, rpm_shaft)
+        self._add_shafts(architecture, number_shafts-1, pr_compressor, rpm_shaft, fan_present, crtf_present)
 
         return is_active
 
@@ -117,9 +130,10 @@ class ShaftChoice(ArchitectingChoice):
         return [pr_percentages_sum]
 
     @staticmethod
-    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list):
+    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list, fan_present: bool, crtf_present: bool):
 
-        # Find the HP compressor and shaft
+        # Find the inlet, HP compressor and HP shaft
+        inlet = architecture.get_elements_by_type(Inlet)[0]
         compressor = architecture.get_elements_by_type(Compressor)[-1]
         shaft = architecture.get_elements_by_type(Shaft)[-1]
 
@@ -130,8 +144,7 @@ class ShaftChoice(ArchitectingChoice):
         for number in range(0, number_shafts):
 
             # Find necessary elements
-            inlet = architecture.get_elements_by_type(Inlet)[0]
-            compressor = architecture.get_elements_by_type(Compressor)[0]
+            compressor = architecture.get_elements_by_type(Compressor)[-1-1*number]
             turbine = architecture.get_elements_by_type(Turbine)[number]
             nozzle = architecture.get_elements_by_type(Nozzle)[0]
             shaft = architecture.get_elements_by_type(Shaft)[0]
@@ -161,9 +174,38 @@ class ShaftChoice(ArchitectingChoice):
             architecture.elements.insert(architecture.elements.index(shaft), shaft_new)
 
             # Reroute flow from inlet and new compressor
-            inlet.target = comp_new
             comp_new.target = compressor
 
             # Reroute flow to new turbine and nozzle
             turbine.target = turb_new
             turb_new.target = nozzle
+
+        # Find elements
+        hp_shaft = architecture.get_elements_by_type(Shaft)[-1]
+        lp_shaft = architecture.get_elements_by_type(Shaft)[0]
+        lp_comp = architecture.get_elements_by_type(Compressor)[fan_present+crtf_present]
+
+        if fan_present:
+            fan = architecture.get_elements_by_type(Compressor)[crtf_present]
+
+            # Disconnect fan from original shaft
+            del hp_shaft.connections[hp_shaft.connections.index(fan)]
+
+            # Recouple fan to low pressure shaft
+            lp_shaft.connections.append(fan)
+
+            # Reroute flows
+            splitter = architecture.get_elements_by_type(Splitter)[0]
+            splitter.target_core = lp_comp
+
+        if crtf_present:
+            crtf = architecture.get_elements_by_type(Compressor)[0]
+
+            # Disconnect crtf from original shaft
+            del hp_shaft.connections[hp_shaft.connections.index(crtf)]
+
+            # Recouple fan to low pressure shaft
+            lp_shaft.connections.append(crtf)
+
+        # Reroute inlet flow
+        inlet.target = architecture.get_elements_by_type(Compressor)[0]

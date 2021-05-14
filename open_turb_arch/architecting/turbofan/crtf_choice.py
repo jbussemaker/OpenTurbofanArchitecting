@@ -40,7 +40,7 @@ class CRTFChoice(ArchitectingChoice):
             ]
 
     def get_construction_order(self) -> int:
-        return 4
+        return 2
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:

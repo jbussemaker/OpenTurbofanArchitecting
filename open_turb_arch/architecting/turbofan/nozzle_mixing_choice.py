@@ -39,7 +39,7 @@ class NozzleMixingChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 5
+        return 8
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
@@ -67,6 +67,14 @@ class NozzleMixingChoice(ArchitectingChoice):
         nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
         nozzle_bypass = architecture.get_elements_by_type(Nozzle)[1]
 
+        # Set new sources for mixer
+        source_core = architecture.get_elements_by_type(Turbine)[-1]
+        source_bypass = architecture.get_elements_by_type(Splitter)[0]
+
+        # Remove core and bypass nozzle
+        architecture.elements.remove(nozzle_core)
+        architecture.elements.remove(nozzle_bypass)
+
         # Create new elements: joint nozzle and mixer
         nozzle_joint = Nozzle(
             name='nozzle_joint', type=NozzleType.CV,
@@ -74,15 +82,15 @@ class NozzleMixingChoice(ArchitectingChoice):
         )
 
         mixer = Mixer(
-            name='mixer', source_1=nozzle_core, source_2=nozzle_bypass,
+            name='mixer', source_1=source_core, source_2=source_bypass,
             target=nozzle_joint
         )
 
-        nozzle_core.flow_out = 'Fl_I1'
-        nozzle_core.target = mixer
-        nozzle_bypass.flow_out = 'Fl_I2'
-        nozzle_bypass.target = mixer
+        source_core.target = mixer
+        source_core.flow_out = 'Fl_I1'
+        source_bypass.target_bypass = mixer
+        source_bypass.flow_out = 'Fl_I2'
 
         # Add joint nozzle and mixer to the architecture elements
-        architecture.elements.insert(architecture.elements.index(nozzle_bypass)+1, mixer)
+        architecture.elements.insert(architecture.elements.index(source_core)+1, mixer)
         architecture.elements.insert(architecture.elements.index(mixer)+1, nozzle_joint)

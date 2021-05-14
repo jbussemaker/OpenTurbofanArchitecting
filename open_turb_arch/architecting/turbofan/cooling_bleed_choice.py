@@ -135,7 +135,7 @@ class CoolingBleedChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 8
+        return 7
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:

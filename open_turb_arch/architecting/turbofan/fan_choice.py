@@ -33,7 +33,7 @@ class FanChoice(ArchitectingChoice):
     fix_include_fan: bool = None  # Set to True of False to fix the choice of whether to include a fan or not
 
     fixed_bpr: float = None  # Fix the bypass ratio
-    bpr_bounds: Tuple[float, float] = (2., 15.)  # Bypass ratio design bounds
+    bpr_bounds: Tuple[float, float] = (2., 12.5)  # Bypass ratio design bounds
 
     fixed_fpr: float = None  # Fix the fan pressure ratio
     fpr_bounds: Tuple[float, float] = (1.1, 1.8)
@@ -52,7 +52,7 @@ class FanChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 2
+        return 1
 
     def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
@@ -71,6 +71,7 @@ class FanChoice(ArchitectingChoice):
 
         # Find necessary elements
         nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
+        nozzle_core.type = NozzleType.CV
 
         # Create new elements: the fan, splitter and bypass flow
         fan = Compressor(
