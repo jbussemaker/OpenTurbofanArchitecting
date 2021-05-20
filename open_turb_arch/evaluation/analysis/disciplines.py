@@ -254,12 +254,12 @@ class NOx:
         p_burner, t_burner, p_itb, t_itb, p_ab, t_ab = self.check_architecture()
 
         # Calculate NOx with GasTurb equation
-        NOx_burner = 32*(p_burner/2964.5)**0.4*exp((t_burner-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
-        NOx_itb = 32*(p_itb/2964.5)**0.4*exp((t_itb-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
-        NOx_ab = 32*(p_ab/2964.5)**0.4*exp((t_ab-826.26)/194.39+(6.29-100*0.03)/53.2)/10**3
+        NOx_burner = 32*(p_burner/2964.5)**0.4*exp((t_burner-826.26)/194.39+(6.29-100*0.03)/53.2)
+        NOx_itb = 32*(p_itb/2964.5)**0.4*exp((t_itb-826.26)/194.39+(6.29-100*0.03)/53.2)
+        NOx_ab = 32*(p_ab/2964.5)**0.4*exp((t_ab-826.26)/194.39+(6.29-100*0.03)/53.2)
         NOx_total = NOx_burner+NOx_itb+NOx_ab
 
-        return NOx_total  # (gram NOx)/kN
+        return NOx_total  # (gram NOx)/(kg fuel)
 
 
 @dataclass(frozen=False)
