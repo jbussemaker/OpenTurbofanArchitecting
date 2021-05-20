@@ -60,21 +60,25 @@ class ITBChoice(ArchitectingChoice):
         is_active = [turbines_present, (turbines_present and include_itb)]
 
         if turbines_present and include_itb:
-            self._include_itb(architecture, far)
+            self._include_itb(architecture, analysis_problem, far)
 
         return is_active
 
     @staticmethod
-    def _include_itb(architecture: TurbofanArchitecture, far: float):
+    def _include_itb(architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, far: float):
 
         # Find necessary elements
         turbine = architecture.get_elements_by_type(Turbine)[0]
         turbine_ip = architecture.get_elements_by_type(Turbine)[1]
         fuel_type = architecture.get_elements_by_type(Burner)[0].fuel  # Same fuel type as normal burner
+        p_loss = architecture.get_elements_by_type(Burner)[0].p_loss_frac  # Same pressure loss as normal burner
+
+        # Adjust main combustor inlet temperature
+        analysis_problem.design_condition.turbine_in_temp *= 0.85  # Estimated value
 
         # Create new elements: the inter-turbine burner
         itb = Burner(
-            name='itb', fuel=fuel_type, fuel_in_air=True, main=False, far=far
+            name='itb', fuel=fuel_type, fuel_in_air=True, main=False, far=far, p_loss_frac=p_loss
         )
 
         # Reroute flows
