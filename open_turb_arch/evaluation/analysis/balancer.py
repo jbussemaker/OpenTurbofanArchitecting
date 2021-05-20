@@ -43,12 +43,14 @@ class DesignBalancer(Balancer):
             init_turbine_pr: float = 2.,
             init_extraction_bleed_frac: float = 0.02,
             init_gearbox_torque: float = 32500,
+            init_mixer_er: float = 5.,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_far = init_far
         self._init_turbine_pr = init_turbine_pr
         self._init_extraction_bleed_frac = init_extraction_bleed_frac
         self._init_gearbox_torque = init_gearbox_torque
+        self._init_mixer_er = init_mixer_er
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
@@ -58,6 +60,7 @@ class DesignBalancer(Balancer):
         self._balance_turbine_temp(cycle, balance)
         self._balance_shaft_power(cycle, balance, architecture)
         self._balance_gearbox(cycle, balance, architecture)
+        self._balance_mixer(cycle, balance, architecture)
 
     def connect_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         pass
@@ -120,6 +123,15 @@ class DesignBalancer(Balancer):
             balance.add_balance('gb_trq', val=self._init_gearbox_torque, units=units.TORQUE, eq_units='hp', rhs_val=0.)
             cycle.connect(balance.name+'.gb_trq', 'gearbox.trq_base')
             cycle.connect('fan_shaft.pwr_net', balance.name+'.lhs:gb_trq')
+        else:
+            pass
+
+    def _balance_mixer(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
+                       architecture: TurbofanArchitecture):
+        if len(architecture.get_elements_by_type(Mixer)):
+            balance.add_balance('BPR', val=self._init_mixer_er, eq_units=None, lower=1e-4)
+            cycle.connect(balance.name+'.BPR', 'splitter.BPR')
+            cycle.connect('mixer.ER', balance.name+'.lhs:BPR')
         else:
             pass
 
