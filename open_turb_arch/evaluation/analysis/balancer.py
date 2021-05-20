@@ -42,11 +42,13 @@ class DesignBalancer(Balancer):
             init_far: float = .017,
             init_turbine_pr: float = 2.,
             init_extraction_bleed_frac: float = 0.02,
+            init_gearbox_torque: float = 32500,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_far = init_far
         self._init_turbine_pr = init_turbine_pr
         self._init_extraction_bleed_frac = init_extraction_bleed_frac
+        self._init_gearbox_torque = init_gearbox_torque
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
@@ -55,6 +57,7 @@ class DesignBalancer(Balancer):
         self._balance_extraction_bleed(cycle, balance, architecture)
         self._balance_turbine_temp(cycle, balance)
         self._balance_shaft_power(cycle, balance, architecture)
+        self._balance_gearbox(cycle, balance, architecture)
 
     def connect_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         pass
@@ -110,6 +113,15 @@ class DesignBalancer(Balancer):
 
             # To force the shaft net power to zero (out power equal to in power)
             cycle.connect(shaft.name+'.pwr_net', '%s.lhs:%s' % (balance.name, param_name))
+
+    def _balance_gearbox(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
+                         architecture: TurbofanArchitecture):
+        if len(architecture.get_elements_by_type(Gearbox)):
+            balance.add_balance('gb_trq', val=self._init_gearbox_torque, units=units.TORQUE, eq_units='hp', rhs_val=0.)
+            cycle.connect(balance.name+'.gb_trq', 'gearbox.trq_base')
+            cycle.connect('fan_shaft.pwr_net', balance.name+'.lhs:gb_trq')
+        else:
+            pass
 
 
 class OffDesignBalancer(Balancer):

@@ -121,13 +121,27 @@ class ShaftChoice(ArchitectingChoice):
 
     def get_constraints(self) -> Optional[List[Constraint]]:
         # Max sum of pressure ratio percentages is 0.9 to enable at least 10% for the LP compressor
-        return [Constraint('max_pr_percentages_sum', ConstraintDirection.LOWER_EQUAL_THAN, 0.9)]
+        # Max pressure ratio for each compressor is 15
+        return [Constraint('max_pr_percentages_sum', ConstraintDirection.LOWER_EQUAL_THAN, 0.9),
+                Constraint('max_pr_hpc', ConstraintDirection.LOWER_EQUAL_THAN, 15),
+                Constraint('max_pr_ipc', ConstraintDirection.LOWER_EQUAL_THAN, 15),
+                Constraint('max_pr_lpc', ConstraintDirection.LOWER_EQUAL_THAN, 15)]
 
     def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
                              an_problem: AnalysisProblem, result: OperatingMetricsMap) -> Optional[Sequence[float]]:
         # Sum the pressure ratio percentages
         pr_percentages_sum = sum(design_vector[2:3])
-        return [pr_percentages_sum]
+        # Get the pressure ratio of the individual compressors
+        pr_hpc = pr_ipc = pr_lpc = 1
+        compressors = architecture.get_elements_by_type(Compressor)
+        for compressor in range(len(compressors)):
+            if compressors[compressor].name == 'compressor':
+                pr_hpc = compressors[compressor].pr
+            elif compressors[compressor].name == 'comp_ip':
+                pr_ipc = compressors[compressor].pr
+            elif compressors[compressor].name == 'comp_lp':
+                pr_lpc = compressors[compressor].pr
+        return [pr_percentages_sum, pr_hpc, pr_ipc, pr_lpc]
 
     @staticmethod
     def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list, fan_present: bool, crtf_present: bool):
