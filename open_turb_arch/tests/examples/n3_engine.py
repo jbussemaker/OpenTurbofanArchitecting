@@ -14,7 +14,7 @@ limitations under the License.
 Copyright: (c) 2020, Deutsches Zentrum fuer Luft- und Raumfahrt e.V.
 Contact: jasper.bussemaker@dlr.de
 
-Simple turbojet example based on pycycle.example_cycles.simple_turbojet
+N+3 engine example based on pycycle.example_cycles.N+3ref.N3ref
 """
 
 
@@ -27,21 +27,23 @@ from open_turb_arch.evaluation.analysis import *
 def get_architecting_problem():
     analysis_problem = AnalysisProblem(
         design_condition=DesignCondition(
-            mach=1e-6,  # Mach number [-]
-            alt=0,  # Altitude [ft]
-            thrust=52489,  # Thrust [N]
-            turbine_in_temp=1043.5,  # Turbine inlet temperature [C]
+            mach=0.8,  # Mach number [-]
+            alt=35000,  # Altitude [ft]
+            thrust=26822.78,  # Thrust [N]
+            turbine_in_temp=1476.85,  # Turbine inlet temperature [C]
             bleed_offtake=0,  # Extraction bleed offtake [kg/s]
-            power_offtake=0,  # Power offtake [W]
-            balancer=DesignBalancer(init_turbine_pr=4.46, init_mass_flow=168, init_extraction_bleed_frac=0),
+            power_offtake=260995,  # Power offtake [W]
+            balancer=DesignBalancer(init_turbine_pr=4.15, init_mass_flow=372, init_extraction_bleed_frac=0, init_gearbox_torque=32420),
         ),
     )
 
     return ArchitectingProblem(
         analysis_problem=analysis_problem,
         choices=[
-            FanChoice(False),
-            ShaftChoice(fixed_opr=13.5, fixed_rpm_shaft_hp=8070),
+            FanChoice(True, fixed_bpr=23.945, fixed_fpr=1.3),
+            ShaftChoice(fixed_number_shafts=2, fixed_opr=52.3, fixed_pr_compressor_ip=0.17, fixed_rpm_shaft_hp=20871, fixed_rpm_shaft_ip=6772),
+            GearboxChoice(True, fixed_gear=3.1),
+            CoolingBleedChoice(fix_ab_hpc_total=0.02, fix_ab_hi_frac_w=1, fix_eb_hb_total=0.1465, fix_eb_hbh_frac_w=1),
             OfftakesChoice(1, 1),
         ],
         objectives=[
@@ -64,9 +66,9 @@ if __name__ == '__main__':
 
     architecting_problem = get_architecting_problem()
     architecting_problem.print_results = True
-    architecting_problem._max_iter = 30
+    architecting_problem._max_iter = 40
 
-    dv = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    dv = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     architecture, imputed_dv = architecting_problem.generate_architecture(dv)
     design_vector, objectives, constraints, metrics = architecting_problem.evaluate(dv)
 
