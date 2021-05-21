@@ -37,7 +37,7 @@ def get_architecting_problem():
             turbine_in_temp=1450,  # Turbine inlet temperature [C]
             bleed_offtake=0.5,  # Extraction bleed offtake [kg/s]
             power_offtake=37.5e3,  # Power offtake [W]
-            balancer=DesignBalancer(init_turbine_pr=10, init_mass_flow=400, init_extraction_bleed_frac=0.05),
+            balancer=DesignBalancer(init_turbine_pr=10, init_mass_flow=400, init_extraction_bleed_frac=0.02),
         )
     )
 
@@ -77,5 +77,5 @@ def get_architecting_problem():
     )
 
 
-def get_pymoo_architecting_problem():
-    return PymooArchitectingProblem(get_architecting_problem())
+def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem):
+    return PymooArchitectingProblem(architecting_problem)
