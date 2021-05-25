@@ -62,7 +62,7 @@ def get_architecting_problem():
         constraints=[
             LengthMetric(max_length=4.5),
             DiameterMetric(max_diameter=2.75),
-            NOxMetric(max_NOx=1.),
+            NOxMetric(max_NOx=15.),
             JetMachMetric(max_jet_mn=1.),
         ],
         metrics=[

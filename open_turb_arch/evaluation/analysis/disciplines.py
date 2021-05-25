@@ -159,7 +159,7 @@ class Length:
         beta = 0.21+0.12/sqrt(phi-0.3) if (fan_present and config == 'separate') else 0.35
 
         # Calculate nacelle length with Torenbeek & Berenschot equations
-        l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
+        l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)*0.67
 
         # Add length changes based on estimated component lengths, unless mentioned otherwise
         if not fan_present:  # Turbojet
@@ -221,7 +221,7 @@ class Diameter:
 
         # Calculate maximum diameter with TU Delft equation
         d_inlet = sqrt(4/pi*area_inlet)  # Nacelle inlet diameter
-        d_max = d_inlet + 0.06*phi*l_nacelle + 0.03  # Maximum nacelle diameter
+        d_max = (d_inlet + 0.06*phi*l_nacelle + 0.03)*1.25  # Maximum nacelle diameter
         d_fan_outlet = d_max*(1-(1/3)*phi**2)  # Fan exit diameter
         d_gg_inlet = d_fan_outlet*((0.089*massflow/rho_atm/c_atm*bpr+4.5)/(0.067*massflow/rho_atm/c_atm*bpr+5.8))**2  # Gas generator inlet diameter
         d_gg_outlet = 0.55*d_gg_inlet  # Gas generator outlet diameter
