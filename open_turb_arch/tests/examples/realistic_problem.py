@@ -48,7 +48,7 @@ if __name__ == '__main__':
             pop_size=240,
             sampling=LatinHypercubeSampling(),
         )
-        result = minimize(problem, algorithm, termination=('n_eval', 3000), verbose=True)
+        result = minimize(problem, algorithm, termination=('n_eval', 3000), verbose=True, save_history=True)
         elapsed = time.time() - t
 
     architecting_problem.finalize()
