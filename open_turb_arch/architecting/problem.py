@@ -40,6 +40,8 @@ class ArchitectingProblem:
     Use `save_results_folder` to store evaluation results (design vector, architecture, results, etc) using pickling.
     Each result is assigned an ID (file names are results_YYYYMMDD_HHMMSS_ID.pkl), which can be requested using
     `get_last_eval_id()`.
+
+    If you need to pickle results containing the ArchitectingProblem, call `.finalize()` before!
     """
 
     def __init__(self, analysis_problem: AnalysisProblem, choices: List[ArchitectingChoice],
@@ -323,3 +325,8 @@ class ArchitectingProblem:
                 metric_values.append(np.nan)
 
         return objective_values, constraint_values, metric_values
+
+    def finalize(self):
+        """Prepares the problem so that it can be safely pickled to store the results"""
+        self._results_cache = {}
+        self._eval_id_cache = {}

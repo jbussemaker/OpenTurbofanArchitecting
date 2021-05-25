@@ -51,5 +51,6 @@ if __name__ == '__main__':
         result = minimize(problem, algorithm, termination=('n_eval', 3000), verbose=True)
         elapsed = time.time() - t
 
-        with open(architecting_problem.save_results_folder+'/pymoo_algo_results.pkl', 'wb') as fp:
-            pickle.dump(result, fp)
+    architecting_problem.finalize()
+    with open(architecting_problem.save_results_folder+'/pymoo_algo_results.pkl', 'wb') as fp:
+        pickle.dump(result, fp)
