@@ -175,7 +175,7 @@ class CoolingBleedChoice(ArchitectingChoice):
                 frac[0], frac[1], frac[2] = (1/2, 1/2, 0.) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
             elif turbines == 3:
                 frac[0], frac[1], frac[2] = (1/3, 1/3, 1/3) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
-            frac_atmos = 1-frac[0]-frac[1]-frac[2]
+            frac_atmos = 1-frac[0]-frac[1]-frac[2] if 1-frac[0]-frac[1]-frac[2] > 1e-3 else 0
             frac_adjusted = [frac_atmos, frac[0], frac[1], frac[2]]
             combined_fracs[i] = [x*totals[i] for x in frac_adjusted]
 
@@ -199,7 +199,9 @@ class CoolingBleedChoice(ArchitectingChoice):
             bleed_type = 'inter' if constraint <= 2 else 'intra'
             shaft_type = 'hp' if constraint in {0, 3} else ('ip' if constraint in {1, 4} else 'lp')
             con = Constraint('max_bleed_percentages_sum_%s_%s' % (bleed_type, shaft_type), ConstraintDirection.LOWER_EQUAL_THAN, 1)
+            atmos = Constraint('max_atmos_%s_%s' % (bleed_type, shaft_type), ConstraintDirection.LOWER_EQUAL_THAN, 0.25)
             constraints.append(con)
+            constraints.append(atmos)
         return constraints
 
     def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
@@ -208,7 +210,9 @@ class CoolingBleedChoice(ArchitectingChoice):
         # Sum the bleed percentages per inter- and intra-bleed
         for constraint in range(6):
             bleed_percentages_sum = sum(design_vector[4*constraint+1:4*constraint+4])
+            bleed_percentage_atmos = 1-bleed_percentages_sum
             constraints.append(bleed_percentages_sum)
+            constraints.append(bleed_percentage_atmos)
         return constraints
 
     @staticmethod
