@@ -166,7 +166,6 @@ class CoolingBleedChoice(ArchitectingChoice):
         ab_ipc_frac = [ab_ih_frac_w, ab_ii_frac_w, ab_il_frac_w]
         ab_lpc_frac = [ab_lh_frac_w, ab_li_frac_w, ab_ll_frac_w]
 
-
         combined_fracs = [eb_hb_frac, eb_ih_frac, eb_li_frac, ab_hpc_frac, ab_ipc_frac, ab_lpc_frac]
         for i, frac in enumerate(combined_fracs):
             frac[1] = frac[1] if has_ip else 0
@@ -175,7 +174,9 @@ class CoolingBleedChoice(ArchitectingChoice):
                 frac[0], frac[1], frac[2] = (1/2, 1/2, 0.) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
             elif turbines == 3:
                 frac[0], frac[1], frac[2] = (1/3, 1/3, 1/3) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
-            frac_atmos = 1-frac[0]-frac[1]-frac[2] if 1-frac[0]-frac[1]-frac[2] > 1e-3 else 0
+            for bld in range(3):
+                frac[bld] = frac[bld] if frac[bld] >= 1e-2 else 0
+            frac_atmos = 1-frac[0]-frac[1]-frac[2] if 1-frac[0]-frac[1]-frac[2] >= 1e-2 else 0
             frac_adjusted = [frac_atmos, frac[0], frac[1], frac[2]]
             combined_fracs[i] = [x*totals[i] for x in frac_adjusted]
 

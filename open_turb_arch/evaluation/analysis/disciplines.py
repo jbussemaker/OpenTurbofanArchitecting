@@ -108,10 +108,9 @@ class Weight:
         weight_nacelle = weight_fancowl+weight_gg
 
         # Calculate pylon and total system weight based on Torenbeek estimation
-        weight_total = (weight_engine+weight_nacelle)/0.86
-        weight_pylon = 0.14*weight_total
+        weight_total = weight_engine+weight_nacelle if fan_present else weight_engine
 
-        return weight_total, weight_engine, weight_nacelle, weight_pylon  # kg
+        return weight_total, weight_engine, weight_nacelle  # kg
 
 
 @dataclass(frozen=False)
@@ -159,11 +158,11 @@ class Length:
         beta = 0.21+0.12/sqrt(phi-0.3) if (fan_present and config == 'separate') else 0.35
 
         # Calculate nacelle length with Torenbeek & Berenschot equations
-        l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)*0.67
+        l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
 
         # Add length changes based on estimated component lengths, unless mentioned otherwise
-        if not fan_present:  # Turbojet
-            l_nacelle *= 1.5
+        if fan_present:  # Turbofan
+            l_nacelle *= 0.85
         if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
             l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
@@ -175,9 +174,8 @@ class Length:
         l_fancowl = phi*l_nacelle  # Fan cowl length
         l_dmax = beta*l_fancowl  # Location at which engine diameter is max
         l_gg = (1-phi)*l_nacelle  # Exposed gas generator length
-        l_cone = 0.5*l_gg  # Cone length --> estimation
 
-        return l_nacelle, l_fancowl, l_dmax, l_gg, l_cone  # m
+        return l_nacelle, l_fancowl, l_dmax, l_gg  # m
 
 
 @dataclass(frozen=False)
@@ -221,7 +219,7 @@ class Diameter:
 
         # Calculate maximum diameter with TU Delft equation
         d_inlet = sqrt(4/pi*area_inlet)  # Nacelle inlet diameter
-        d_max = (d_inlet + 0.06*phi*l_nacelle + 0.03)*1.25  # Maximum nacelle diameter
+        d_max = (d_inlet + 0.06*phi*l_nacelle + 0.03)*(1.35 if fan_present else 1)  # Maximum nacelle diameter
         d_fan_outlet = d_max*(1-(1/3)*phi**2)  # Fan exit diameter
         d_gg_inlet = d_fan_outlet*((0.089*massflow/rho_atm/c_atm*bpr+4.5)/(0.067*massflow/rho_atm/c_atm*bpr+5.8))**2  # Gas generator inlet diameter
         d_gg_outlet = 0.55*d_gg_inlet  # Gas generator outlet diameter
