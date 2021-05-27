@@ -80,7 +80,7 @@ class Weight:
 
         # Add engine weight changes based on MIT component weights, unless mentioned otherwise
         if not fan_present:  # Turbojet
-            weight_engine *= 0.75
+            weight_engine *= 3
         if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
             weight_engine *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
@@ -163,7 +163,7 @@ class Length:
 
         # Add length changes based on estimated component lengths, unless mentioned otherwise
         if not fan_present:  # Turbojet
-            l_nacelle *= 0.75
+            l_nacelle *= 1.5
         if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
             l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
