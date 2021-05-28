@@ -79,8 +79,6 @@ class Weight:
         weight_engine = (a*(massflow_core*2.2046226218/100)**b*(opr/40)**c)/2.2046226218
 
         # Add engine weight changes based on MIT component weights, unless mentioned otherwise
-        if not fan_present:  # Turbojet
-            weight_engine *= 3
         if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
             weight_engine *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
@@ -108,7 +106,7 @@ class Weight:
         weight_nacelle = weight_fancowl+weight_gg
 
         # Calculate pylon and total system weight based on Torenbeek estimation
-        weight_total = weight_engine+weight_nacelle if fan_present else weight_engine
+        weight_total = weight_engine+weight_nacelle
 
         return weight_total, weight_engine, weight_nacelle  # kg
 
@@ -161,8 +159,7 @@ class Length:
         l_nacelle = cl*(sqrt(massflow/rho_atm/c_atm*(1+0.2*bpr)/(1+bpr))+dl)
 
         # Add length changes based on estimated component lengths, unless mentioned otherwise
-        if fan_present:  # Turbofan
-            l_nacelle *= 0.85
+        l_nacelle = l_nacelle*(0.85 if fan_present else 0.75)
         if len(self.architecture.get_elements_by_type(Turbine)) != 2:  # No 2-shaft engine
             l_nacelle *= 1.1**(len(self.architecture.get_elements_by_type(Turbine))-2)
         if len(self.architecture.get_elements_by_type(Burner)) != 1:  # ITB
@@ -174,8 +171,9 @@ class Length:
         l_fancowl = phi*l_nacelle  # Fan cowl length
         l_dmax = beta*l_fancowl  # Location at which engine diameter is max
         l_gg = (1-phi)*l_nacelle  # Exposed gas generator length
+        l_cone = 0.5*l_gg  # Cone length --> estimation
 
-        return l_nacelle, l_fancowl, l_dmax, l_gg  # m
+        return l_nacelle, l_fancowl, l_dmax, l_gg, l_cone  # m
 
 
 @dataclass(frozen=False)
