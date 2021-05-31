@@ -45,7 +45,7 @@ if __name__ == '__main__':
         problem.parallelization = ('starmap', pool.starmap)
 
         algorithm = NSGA2(
-            pop_size=240,
+            pop_size=205,
             sampling=LatinHypercubeSampling(),
         )
         result = minimize(problem, algorithm, termination=('n_eval', 3000), verbose=True, save_history=True)
