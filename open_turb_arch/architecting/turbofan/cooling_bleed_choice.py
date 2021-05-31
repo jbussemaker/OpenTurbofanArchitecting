@@ -33,37 +33,31 @@ class CoolingBleedChoice(ArchitectingChoice):
 
     # Inter-bleed HPC-burner
     fix_eb_hb_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the HPC and burner
-    fix_eb_hbh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the HPC and burner
     fix_eb_hbi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the HPC and burner
     fix_eb_hbl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the HPC and burner
 
     # Inter-bleed IPC-HPC
     fix_eb_ih_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the IPC and HPC
-    fix_eb_ihh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the IPC and HPC
     fix_eb_ihi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the IPC and HPC
     fix_eb_ihl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the IPC and HPC
 
     # Inter-bleed LPC-IPC
     fix_eb_li_total: float = None  # Fix the total cooling bleed portion of the inter-bleed between the LPC and IPC
-    fix_eb_lih_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the inter-bleed between the LPC and IPC
     fix_eb_lii_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the inter-bleed between the LPC and IPC
     fix_eb_lil_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the inter-bleed between the LPC and IPC
 
     # Intra-bleed HPC
     fix_ab_hpc_total: float = None  # Fix the total cooling bleed portion of the HPC intra-bleed
-    fix_ab_hh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the HPC intra-bleed
     fix_ab_hi_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the HPC intra-bleed
     fix_ab_hl_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the HPC intra-bleed
 
     # Intra-bleed IPC
     fix_ab_ipc_total: float = None  # Fix the total cooling bleed portion of the IPC intra-bleed
-    fix_ab_ih_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the IPC intra-bleed
     fix_ab_ii_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the IPC intra-bleed
     fix_ab_il_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the IPC intra-bleed
 
     # Intra-bleed LPC
     fix_ab_lpc_total: float = None  # Fix the total cooling bleed portion of the LPC intra-bleed
-    fix_ab_lh_frac_w: float = None  # Fix the cooling bleed portion of the HPT as target of the LPC intra-bleed
     fix_ab_li_frac_w: float = None  # Fix the cooling bleed portion of the IPT as target of the LPC intra-bleed
     fix_ab_ll_frac_w: float = None  # Fix the cooling bleed portion of the LPT as target of the LPC intra-bleed
 
@@ -77,8 +71,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             ContinuousDesignVariable(
                 'eb_hb_total', bounds=self.total_bounds, fixed_value=self.fix_eb_hb_total),
             ContinuousDesignVariable(
-                'eb_hbh_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_hbh_frac_w),
-            ContinuousDesignVariable(
                 'eb_hbi_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_hbi_frac_w),
             ContinuousDesignVariable(
                 'eb_hbl_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_hbl_frac_w),
@@ -86,8 +78,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             # Inter-bleed IPC-HPC
             ContinuousDesignVariable(
                 'eb_ih_total', bounds=self.total_bounds, fixed_value=self.fix_eb_ih_total),
-            ContinuousDesignVariable(
-                'eb_ihh_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_ihh_frac_w),
             ContinuousDesignVariable(
                 'eb_ihi_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_ihi_frac_w),
             ContinuousDesignVariable(
@@ -97,8 +87,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             ContinuousDesignVariable(
                 'eb_li_total', bounds=self.total_bounds, fixed_value=self.fix_eb_li_total),
             ContinuousDesignVariable(
-                'eb_lih_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_lih_frac_w),
-            ContinuousDesignVariable(
                 'eb_lii_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_lii_frac_w),
             ContinuousDesignVariable(
                 'eb_lil_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_eb_lil_frac_w),
@@ -106,8 +94,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             # Intra-bleed HPC
             ContinuousDesignVariable(
                 'ab_hpc_total', bounds=self.total_bounds, fixed_value=self.fix_ab_hpc_total),
-            ContinuousDesignVariable(
-                'ab_hh_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_hh_frac_w),
             ContinuousDesignVariable(
                 'ab_hi_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_hi_frac_w),
             ContinuousDesignVariable(
@@ -117,8 +103,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             ContinuousDesignVariable(
                 'ab_ipc_total', bounds=self.total_bounds, fixed_value=self.fix_ab_ipc_total),
             ContinuousDesignVariable(
-                'ab_ih_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_ih_frac_w),
-            ContinuousDesignVariable(
                 'ab_ii_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_ii_frac_w),
             ContinuousDesignVariable(
                 'ab_il_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_il_frac_w),
@@ -126,8 +110,6 @@ class CoolingBleedChoice(ArchitectingChoice):
             # Intra-bleed LPC
             ContinuousDesignVariable(
                 'ab_lpc_total', bounds=self.total_bounds, fixed_value=self.fix_ab_lpc_total),
-            ContinuousDesignVariable(
-                'ab_lh_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_lh_frac_w),
             ContinuousDesignVariable(
                 'ab_li_frac_w', bounds=self.frac_w_bounds, fixed_value=self.fix_ab_li_frac_w),
             ContinuousDesignVariable(
@@ -145,12 +127,12 @@ class CoolingBleedChoice(ArchitectingChoice):
         has_ip = (turbines >= 2)
         has_lp = (turbines == 3)
 
-        eb_hb_total, eb_hbh_frac_w, eb_hbi_frac_w, eb_hbl_frac_w, \
-        eb_ih_total, eb_ihh_frac_w, eb_ihi_frac_w, eb_ihl_frac_w, \
-        eb_li_total, eb_lih_frac_w, eb_lii_frac_w, eb_lil_frac_w, \
-        ab_hpc_total, ab_hh_frac_w, ab_hi_frac_w, ab_hl_frac_w, \
-        ab_ipc_total, ab_ih_frac_w, ab_ii_frac_w, ab_il_frac_w, \
-        ab_lpc_total, ab_lh_frac_w, ab_li_frac_w, ab_ll_frac_w \
+        eb_hb_total, eb_hbi_frac_w, eb_hbl_frac_w, \
+        eb_ih_total, eb_ihi_frac_w, eb_ihl_frac_w, \
+        eb_li_total, eb_lii_frac_w, eb_lil_frac_w, \
+        ab_hpc_total, ab_hi_frac_w, ab_hl_frac_w, \
+        ab_ipc_total, ab_ii_frac_w, ab_il_frac_w, \
+        ab_lpc_total, ab_li_frac_w, ab_ll_frac_w \
         = design_vector
 
         eb_ih_total = eb_ih_total if has_ip else 0
@@ -159,33 +141,31 @@ class CoolingBleedChoice(ArchitectingChoice):
         ab_lpc_total = ab_lpc_total if has_lp else 0
 
         totals = [eb_hb_total, eb_ih_total, eb_li_total, ab_hpc_total, ab_ipc_total, ab_lpc_total]
-        eb_hb_frac = [eb_hbh_frac_w, eb_hbi_frac_w, eb_hbl_frac_w]
-        eb_ih_frac = [eb_ihh_frac_w, eb_ihi_frac_w, eb_ihl_frac_w]
-        eb_li_frac = [eb_lih_frac_w, eb_lii_frac_w, eb_lil_frac_w]
-        ab_hpc_frac = [ab_hh_frac_w, ab_hi_frac_w, ab_hl_frac_w]
-        ab_ipc_frac = [ab_ih_frac_w, ab_ii_frac_w, ab_il_frac_w]
-        ab_lpc_frac = [ab_lh_frac_w, ab_li_frac_w, ab_ll_frac_w]
+        eb_hb_frac = [eb_hbi_frac_w, eb_hbl_frac_w]
+        eb_ih_frac = [eb_ihi_frac_w, eb_ihl_frac_w]
+        eb_li_frac = [eb_lii_frac_w, eb_lil_frac_w]
+        ab_hpc_frac = [ab_hi_frac_w, ab_hl_frac_w]
+        ab_ipc_frac = [ab_ii_frac_w, ab_il_frac_w]
+        ab_lpc_frac = [ab_li_frac_w, ab_ll_frac_w]
 
         combined_fracs = [eb_hb_frac, eb_ih_frac, eb_li_frac, ab_hpc_frac, ab_ipc_frac, ab_lpc_frac]
         for i, frac in enumerate(combined_fracs):
-            frac[1] = frac[1] if has_ip else 0
-            frac[2] = frac[2] if has_lp else 0
-            if turbines == 2:
-                frac[0], frac[1], frac[2] = (1/2, 1/2, 0.) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
-            elif turbines == 3:
-                frac[0], frac[1], frac[2] = (1/3, 1/3, 1/3) if frac[0]+frac[1]+frac[2] > 1 else (frac[0], frac[1], frac[2])
-            for bld in range(3):
+            frac[0] = frac[0] if has_ip else 0
+            frac[1] = frac[1] if has_lp else 0
+            if turbines == 3:
+                frac[0], frac[1] = (1/3, 1/3) if frac[0]+frac[1] > 1 else (frac[0], frac[1])
+            for bld in range(2):
                 frac[bld] = frac[bld] if frac[bld] >= 1e-2 else 0
-            frac_atmos = 1-frac[0]-frac[1]-frac[2] if 1-frac[0]-frac[1]-frac[2] >= 1e-2 else 0
-            frac_adjusted = [frac_atmos, frac[0], frac[1], frac[2]]
+            frac_hpt = 1-frac[0]-frac[1] if 1-frac[0]-frac[1] >= 1e-2 else 0
+            frac_adjusted = [frac_hpt, frac[0], frac[1]]
             combined_fracs[i] = [x*totals[i] for x in frac_adjusted]
 
-        is_active = [True, combined_fracs[0][1], combined_fracs[0][2], combined_fracs[0][3],
-                     eb_ih_total, combined_fracs[1][1], combined_fracs[1][2], combined_fracs[1][3],
-                     eb_li_total, combined_fracs[2][1], combined_fracs[2][2], combined_fracs[2][3],
-                     True, combined_fracs[3][1], combined_fracs[3][2], combined_fracs[3][3],
-                     ab_ipc_total, combined_fracs[4][1], combined_fracs[4][2], combined_fracs[4][3],
-                     ab_lpc_total, combined_fracs[5][1], combined_fracs[5][2], combined_fracs[5][3]]
+        is_active = [True, combined_fracs[0][1], combined_fracs[0][2],
+                     eb_ih_total, combined_fracs[1][1], combined_fracs[1][2],
+                     eb_li_total, combined_fracs[2][1], combined_fracs[2][2],
+                     True, combined_fracs[3][1], combined_fracs[3][2],
+                     ab_ipc_total, combined_fracs[4][1], combined_fracs[4][2],
+                     ab_lpc_total, combined_fracs[5][1], combined_fracs[5][2]]
 
         # Add the inter-bleed
         self._include_bleed_inter(architecture, combined_fracs[0:3])
@@ -200,9 +180,7 @@ class CoolingBleedChoice(ArchitectingChoice):
             bleed_type = 'inter' if constraint <= 2 else 'intra'
             shaft_type = 'hp' if constraint in {0, 3} else ('ip' if constraint in {1, 4} else 'lp')
             con = Constraint('max_bleed_percentages_sum_%s_%s' % (bleed_type, shaft_type), ConstraintDirection.LOWER_EQUAL_THAN, 1)
-            atmos = Constraint('max_atmos_%s_%s' % (bleed_type, shaft_type), ConstraintDirection.LOWER_EQUAL_THAN, 0.25)
             constraints.append(con)
-            constraints.append(atmos)
         return constraints
 
     def evaluate_constraints(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector,
@@ -210,10 +188,8 @@ class CoolingBleedChoice(ArchitectingChoice):
         constraints = []
         # Sum the bleed percentages per inter- and intra-bleed
         for constraint in range(6):
-            bleed_percentages_sum = sum(design_vector[4*constraint+1:4*constraint+4])
-            bleed_percentage_atmos = 1-bleed_percentages_sum
+            bleed_percentages_sum = sum(design_vector[3*constraint+1:3*constraint+3])
             constraints.append(bleed_percentages_sum)
-            constraints.append(bleed_percentage_atmos)
         return constraints
 
     @staticmethod
@@ -236,22 +212,18 @@ class CoolingBleedChoice(ArchitectingChoice):
                 adjusted_fractions = []
                 bleed_names = []
                 if fractions[number][0] != 0:
-                    adjusted_targets.append('atmos')
-                    adjusted_fractions.append(fractions[number][0])
-                    bleed_names.append(name + '_atmos')
-                if fractions[number][1] != 0:
                     adjusted_targets.append('turbine')
-                    adjusted_fractions.append(fractions[number][1])
+                    adjusted_fractions.append(fractions[number][0])
                     bleed_names.append(name + '_turbine')
                     turbines[0].bleed_names.append(name + '_turbine')
-                if fractions[number][2] != 0:
+                if fractions[number][1] != 0:
                     adjusted_targets.append('turb_ip')
-                    adjusted_fractions.append(fractions[number][2])
+                    adjusted_fractions.append(fractions[number][1])
                     bleed_names.append(name + '_turb_ip')
                     turbines[1].bleed_names.append(name + '_turb_ip')
-                if fractions[number][3] != 0:
+                if fractions[number][2] != 0:
                     adjusted_targets.append('turb_lp')
-                    adjusted_fractions.append(fractions[number][3])
+                    adjusted_fractions.append(fractions[number][2])
                     bleed_names.append(name + '_turb_lp')
                     turbines[2].bleed_names.append(name + '_turb_lp')
 
@@ -293,25 +265,20 @@ class CoolingBleedChoice(ArchitectingChoice):
                 adjusted_fractions = []
                 bleed_names = []
                 if fractions[number][0] != 0:
-                    adjusted_targets.append('atmos')
-                    adjusted_fractions.append(fractions[number][0])
-                    bleed_names.append(name + source_name + '_atmos')
-                    compressors[-1-1*number].bleed_names.append(name + source_name + '_atmos')
-                if fractions[number][1] != 0:
                     adjusted_targets.append('turbine')
-                    adjusted_fractions.append(fractions[number][1])
+                    adjusted_fractions.append(fractions[number][0])
                     bleed_names.append(name + source_name + '_hp')
                     compressors[-1-1*number].bleed_names.append(name + source_name + '_hp')
                     turbines[0].bleed_names.append(name + source_name + '_hp')
-                if fractions[number][2] != 0:
+                if fractions[number][1] != 0:
                     adjusted_targets.append('turb_ip')
-                    adjusted_fractions.append(fractions[number][2])
+                    adjusted_fractions.append(fractions[number][1])
                     bleed_names.append(name + source_name + '_ip')
                     compressors[-1-1*number].bleed_names.append(name + source_name + '_ip')
                     turbines[1].bleed_names.append(name + source_name + '_ip')
-                if fractions[number][3] != 0:
+                if fractions[number][2] != 0:
                     adjusted_targets.append('turb_lp')
-                    adjusted_fractions.append(fractions[number][3])
+                    adjusted_fractions.append(fractions[number][2])
                     bleed_names.append(name + source_name + '_lp')
                     compressors[-1-1*number].bleed_names.append(name + source_name + '_lp')
                     turbines[2].bleed_names.append(name + source_name + '_lp')

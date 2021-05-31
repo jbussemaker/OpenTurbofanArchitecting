@@ -42,7 +42,7 @@ def get_architecting_problem():
         choices=[
             FanChoice(True, fixed_bpr=5.105, fixed_fpr=1.685),
             ShaftChoice(fixed_number_shafts=2, fixed_opr=30.094, fixed_pr_compressor_ip=0.18, fixed_rpm_shaft_hp=14705.7, fixed_rpm_shaft_ip=4666.1),
-            CoolingBleedChoice(fix_ab_hpc_total=0.070982, fix_ab_hi_frac_w=1, fix_eb_hb_total=0.16847, fix_eb_hbh_frac_w=1),
+            CoolingBleedChoice(fix_ab_hpc_total=0.070982, fix_ab_hi_frac_w=1, fix_eb_hb_total=0.16847, fix_eb_hbi_frac_w=0, fix_eb_ihl_frac_w=0),
             OfftakesChoice(1, 1),
         ],
         objectives=[
