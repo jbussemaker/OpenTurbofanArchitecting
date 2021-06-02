@@ -84,7 +84,7 @@ def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem):
         with open(path, 'r') as fp:
             pf_data = json.load(fp)
 
-        prob._calc_pareto_front = lambda *_, **__: np.array(pf_data['f'])
-        prob._calc_pareto_set = lambda *_, **__: np.array(pf_data['x'])
+        prob._pareto_front = np.array(pf_data['f'])
+        prob._pareto_set = np.array(pf_data['x'])
 
     return prob
