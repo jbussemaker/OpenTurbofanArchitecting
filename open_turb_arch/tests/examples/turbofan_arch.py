@@ -46,6 +46,9 @@ architecting_problem = ArchitectingProblem(
     analysis_problem=analysis_problem,
     choices=[
         FanChoice(fix_include_fan=None, fixed_bpr=None, fixed_fpr=None),
+        # ShaftChoice(fixed_add_shafts=None)
+        # FanGearChoice(fix_include_fan=None, fixed_bpr=None, fixed_fpr=None, fix_include_gear=None, fixed_gear=None)
+        # FanMixingChoice(fix_include_fan=None, fixed_bpr=None, fixed_fpr=None, fix_include_mixing=None)
     ],
     objectives=[
         TSFCMetric(),
@@ -59,7 +62,7 @@ architecting_problem = ArchitectingProblem(
 )
 
 if __name__ == '__main__':
-    for has_fan in [0, 1]:
+    for has_fan in [1]:
         has_fan_status = 'turbofan' if has_fan else 'turbojet'
         design_vector = [has_fan, 5., 1.5]  # has_fan, bpr, fpr
 
@@ -72,3 +75,61 @@ if __name__ == '__main__':
         print('Objectives %s: %r' % (has_fan_status, objectives))
         print('Constraints %s: %r' % (has_fan_status, constraints))
         print('Metrics %s: %r' % (has_fan_status, metrics))
+
+    # for multi_shaft in [0, 1]:
+    #     multi_shaft_status = 'multi' if multi_shaft > 0 else 'single'
+    #     design_vector = [multi_shaft]
+    #
+    #     print('Design vector %s (input): %r' % (multi_shaft_status, design_vector))
+    #     architecture, _ = architecting_problem.generate_architecture(design_vector)
+    #     print(architecture)
+    #
+    #     design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+    #     print('Design vector %s (output): %r' % (multi_shaft_status, design_vector))
+    #     print('Objectives %s: %r' % (multi_shaft_status, objectives))
+    #     print('Constraints %s: %r' % (multi_shaft_status, constraints))
+    #     print('Metrics %s: %r' % (multi_shaft_status, metrics))
+
+    # for has_gear in [1]:
+    #     has_gear_status = 'geared' if has_gear else 'normal'
+    #     design_vector = [1, 5., 1.5, has_gear, 3]  # has_fan, bpr, fpr
+    #
+    #     print('Design vector %s (input): %r' % (has_gear_status, design_vector))
+    #     architecture, _ = architecting_problem.generate_architecture(design_vector)
+    #     print(architecture)
+    #
+    #     design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+    #     print('Design vector %s (output): %r' % (has_gear_status, design_vector))
+    #     print('Objectives %s: %r' % (has_gear_status, objectives))
+    #     print('Constraints %s: %r' % (has_gear_status, constraints))
+    #     print('Metrics %s: %r' % (has_gear_status, metrics))
+
+    # for has_mixing in [1]:
+    #     has_mixing_status = 'mixed' if has_mixing else 'separate'
+    #     design_vector = [1, 5., 1.5, has_mixing]  # has_fan, bpr, fpr
+    #
+    #     print('Design vector %s (input): %r' % (has_mixing_status, design_vector))
+    #     architecture, _ = architecting_problem.generate_architecture(design_vector)
+    #     print(architecture)
+    #
+    #     design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+    #     print('Design vector %s (output): %r' % (has_mixing_status, design_vector))
+    #     print('Objectives %s: %r' % (has_mixing_status, objectives))
+    #     print('Constraints %s: %r' % (has_mixing_status, constraints))
+    #     print('Metrics %s: %r' % (has_mixing_status, metrics))
+
+    # for has_fan in [0, 1]:
+    #     has_fan_status = 'turbofan' if has_fan else 'turbojet'
+    #     for has_mixing in [0, 1]:
+    #         has_mixing_status = 'mixed' if has_mixing else 'separate'
+    #         design_vector = [has_fan, 5., 1.5, has_mixing]  # has_fan, bpr, fpr
+    #
+    #         print('Design vector %s %s (input): %r' % (has_fan_status, has_mixing_status, design_vector))
+    #         architecture, _ = architecting_problem.generate_architecture(design_vector)
+    #         print(architecture)
+    #
+    #         design_vector, objectives, constraints, metrics = architecting_problem.evaluate(design_vector)
+    #         print('Design vector %s %s (output): %r' % (has_fan_status, has_mixing_status, design_vector))
+    #         print('Objectives %s %s: %r' % (has_fan_status, has_mixing_status, objectives))
+    #         print('Constraints %s %s: %r' % (has_fan_status, has_mixing_status, constraints))
+    #         print('Metrics %s %s: %r' % (has_fan_status, has_mixing_status, metrics))

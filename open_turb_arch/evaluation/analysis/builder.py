@@ -23,6 +23,8 @@ import pycycle.api as pyc
 from ordered_set import OrderedSet
 from dataclasses import dataclass, field
 import open_turb_arch.evaluation.architecture.units as units
+from open_turb_arch.evaluation.architecture.turbomachinery import *
+from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.architecture import *
 
 __all__ = ['CycleBuilder', 'ArchitectureCycle', 'ArchitectureMultiPointCycle', 'OperatingCondition', 'DesignCondition',
@@ -51,11 +53,12 @@ class OperatingCondition:
 
     def set_values(self, problem: om.Problem):
         problem.set_val(self.name+'.fc.MN', self.mach)
-        problem.set_val(self.name +'.fc.alt', self.alt, units=units.ALTITUDE)
-        problem.set_val(self.name +'.balance.Fn_target', self.thrust, units=units.FORCE)
+        problem.set_val(self.name+'.fc.alt', self.alt, units=units.ALTITUDE)
+        problem.set_val('%s.%s.Fn_target' % (self.name, self.balancer.balance_name), self.thrust, units=units.FORCE)
+        problem.set_val('%s.%s.extraction_bleed_target' % (self.name, self.balancer.balance_name), self.bleed_offtake, units=units.MASS_FLOW)
 
         if self.d_temp != 0:
-            problem.set_val(self.name +'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
+            problem.set_val(self.name+'.fc.dTs', self.d_temp, units=units.TEMPERATURE)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -73,7 +76,7 @@ class DesignCondition(OperatingCondition):
 
         if self.turbine_in_temp == 0.:
             raise ValueError('Must set a target turbine inlet temperature for the design condition')
-        problem.set_val(self.name +'.balance.T4_target', self.turbine_in_temp, units=units.TEMPERATURE)
+        problem.set_val('%s.%s.T4_target' % (self.name, self.balancer.balance_name), self.turbine_in_temp, units=units.TEMPERATURE)
 
     def _get_name(self) -> str:
         return 'design'
@@ -119,6 +122,20 @@ class OperatingMetrics:
     thrust: float = None  # Net thrust generated [N]
     tsfc: float = None  # Thrust Specific Fuel Consumption [g/kN s]
     opr: float = None  # Overall pressure ratio
+    area_inlet: float = None  # Engine inlet area [m2]
+    area_jet: float = None  # Outlet area of the jet nozzle [m2]
+    v_jet: float = None  # Outlet velocity of the jet nozzle [m/s]
+    mach_jet: float = None  # Outlet mach number of the jet nozzle
+    p_atm: float = None  # Atmospheric pressure [Pa]
+    t_atm: float = None  # Atmospheric temperature [degC]
+    p_burner_in: float = None  # Burner inlet pressure [Pa]
+    t_burner_in: float = None  # Burner inlet temperature [degC]
+    p_itb_in: float = None  # Inter-turbine burner inlet pressure [Pa]
+    t_itb_in: float = None  # Inter-turbine burner inlet temperature [degC]
+    p_ab_in: float = None  # Afterburner inlet pressure [Pa]
+    t_ab_in: float = None  # Afterburner inlet temperature [degC]
+    p_jet: float = None  # Jet nozzle exit pressure [Pa]
+    t_jet: float = None  # Jet nozzle exit temperature [degC]
 
 
 class ArchitectureCycle(pyc.Cycle):
@@ -136,7 +153,7 @@ class ArchitectureCycle(pyc.Cycle):
 
     def initialize(self):
         self.options.declare('design', default=True,
-                              desc='Switch between on-design and off-design calculation.')
+                             desc='Switch between on-design and off-design calculation.')
 
     @property
     def is_design_condition(self):
@@ -173,7 +190,7 @@ class ArchitectureCycle(pyc.Cycle):
         self._set_solvers()
 
     def _add_flight_conditions(self, thermo_data):
-        self.pyc_add_element('fc', pyc.FlightConditions(thermo_data=thermo_data, elements=pyc.AIR_MIX))
+        self.pyc_add_element('fc', pyc.FlightConditions(thermo_data=thermo_data, elements=pyc.AIR_ELEMENTS))
 
     def _add_performance(self):
         n_nozzles = 0
@@ -208,7 +225,7 @@ class ArchitectureCycle(pyc.Cycle):
                         raise RuntimeError('Burner has no incoming flow: %r' % pyc_el.name)
                     src_el_name = src_name.split('.')[0]
 
-                    self.connect(src_el_name+'.Fl_O:tot:P', 'perf.Pt3')
+                    self.connect(src_el_name+('.Fl_O:tot:P' if src_el_name != 'intercooler' else '.Fl_O1:tot:P'), 'perf.Pt3')
 
                 i_burner += 1
 
@@ -228,6 +245,7 @@ class ArchitectureCycle(pyc.Cycle):
         newton.options['solve_subsystems'] = True
         newton.options['max_sub_solves'] = 100
         newton.options['reraise_child_analysiserror'] = False
+        newton.options['err_on_non_converge'] = True
 
         ls = newton.linesearch = om.ArmijoGoldsteinLS()
         ls.options['maxiter'] = 3
@@ -239,6 +257,8 @@ class ArchitectureCycle(pyc.Cycle):
         self._print_performance(problem, fp=fp)
 
         flow_stations = ['%s.fc.Fl_O' % self.name]
+        massflow_inlet = problem.get_val('%s.inlet.Fl_O:stat:W' % self.name, get_remote=None),
+        problem.set_val(self.name+'.fc.Fl_O:stat:W', massflow_inlet)
         element: om.Group
         sub_sys: om.Group
         for element in self._elements:
@@ -263,6 +283,7 @@ class ArchitectureCycle(pyc.Cycle):
 
         pyc.print_shaft(problem, self.get_element_names(pyc.Shaft), file=fp)
 
+        pyc.print_bleed(problem, self.get_element_names(pyc.Compressor), file=fp)
         bleed_names = self.get_element_names(pyc.BleedOut)
         if len(bleed_names) > 0:
             pyc.print_bleed(problem, bleed_names, file=fp)
@@ -301,13 +322,42 @@ class ArchitectureCycle(pyc.Cycle):
         def _float(val):
             return float(np.atleast_1d(val)[0])
 
+        # Check if ITB, AB and mixed nozzle are present
+        itb_present = False
+        ab_present = False
+        burners = self.architecture.get_elements_by_type(Burner)
+        for burner in range(len(burners)):
+            if burners[burner].name == 'itb':
+                itb_present = True
+            elif burners[burner].name == 'ab':
+                ab_present = True
+        mixed_nozzle = False
+        nozzles = self.architecture.get_elements_by_type(Nozzle)
+        for nozzle in range(len(nozzles)):
+            if nozzles[nozzle].name == 'nozzle_joint':
+                mixed_nozzle = True
+
         return OperatingMetrics(
             fuel_flow=_float(problem.get_val(self.name+'.perf.Wfuel', units=units.MASS_FLOW, get_remote=None)),
+            area_inlet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, self.inlet_el_name), units=units.AREA, get_remote=None)),
             mass_flow=_float(problem.get_val('%s.%s.Fl_O:stat:W' % (self.name, self.inlet_el_name),
                                              units=units.MASS_FLOW, get_remote=None)),
             thrust=_float(problem.get_val(self.name+'.perf.Fn', units=units.FORCE, get_remote=None)),
             tsfc=_float(problem.get_val(self.name+'.perf.TSFC', units=units.TSFC, get_remote=None)),
             opr=_float(problem.get_val(self.name+'.perf.OPR', get_remote=None)),
+            area_jet=_float(problem.get_val('%s.%s.Fl_O:stat:area' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.AREA, get_remote=None)),
+            v_jet=_float(problem.get_val('%s.%s.Fl_O:stat:V' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.VELOCITY, get_remote=None)),
+            mach_jet=_float(problem.get_val('%s.%s.Fl_O:stat:MN' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), get_remote=None)),
+            p_atm=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'fc'), units=units.PRESSURE, get_remote=None)),
+            t_atm=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'fc'), units=units.TEMPERATURE, get_remote=None)),
+            p_burner_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'burner'), units=units.PRESSURE, get_remote=None)),
+            t_burner_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'burner'), units=units.TEMPERATURE, get_remote=None)),
+            p_itb_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'itb'), units=units.PRESSURE, get_remote=None)) if itb_present else 0,
+            t_itb_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'itb'), units=units.TEMPERATURE, get_remote=None)) if itb_present else 0,
+            p_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:P' % (self.name, 'ab'), units=units.PRESSURE, get_remote=None)) if ab_present else 0,
+            t_ab_in=_float(problem.get_val('%s.%s.Fl_I:tot:T' % (self.name, 'ab'), units=units.TEMPERATURE, get_remote=None)) if ab_present else 0,
+            p_jet=_float(problem.get_val('%s.%s.Fl_O:tot:P' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.PRESSURE, get_remote=None)),
+            t_jet=_float(problem.get_val('%s.%s.Fl_O:tot:T' % (self.name, 'nozzle_core' if not mixed_nozzle else 'nozzle_joint'), units=units.TEMPERATURE, get_remote=None)),
         )
 
 
@@ -427,7 +477,7 @@ class Balancer:
     """A balancer defines how certain values should be implicitly equated to each other so that calculations are
     consistent (i.e. they solve the residuals)."""
 
-    balance_name = 'balance'
+    balance_name = 'engine_balance'
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         """Add balances and set initial guesses."""

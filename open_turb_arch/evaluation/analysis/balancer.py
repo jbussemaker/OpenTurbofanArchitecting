@@ -16,6 +16,7 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import openmdao.api as om
+import warnings
 import pycycle.api as pyc
 from open_turb_arch.evaluation.architecture.flow import *
 import open_turb_arch.evaluation.architecture.units as units
@@ -30,6 +31,7 @@ class DesignBalancer(Balancer):
     """
     Balancer for the design point:
     - Uses inlet mass flow rate to tune the required thrust
+    - Uses compressor bleed fraction to tune the extraction bleed
     - Uses burner fuel-to-air ratio to tune the turbine inlet temperature
     - Uses turbine pressure ratio to balance shaft net power (should be 0)
     """
@@ -39,17 +41,26 @@ class DesignBalancer(Balancer):
             init_mass_flow: float = 80.,  # kg/s
             init_far: float = .017,
             init_turbine_pr: float = 2.,
+            init_extraction_bleed_frac: float = 0.02,
+            init_gearbox_torque: float = 32500,
+            init_mixer_er: float = 5.,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_far = init_far
         self._init_turbine_pr = init_turbine_pr
+        self._init_extraction_bleed_frac = init_extraction_bleed_frac
+        self._init_gearbox_torque = init_gearbox_torque
+        self._init_mixer_er = init_mixer_er
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
 
         self._balance_thrust(cycle, balance)
+        self._balance_extraction_bleed(cycle, balance, architecture)
         self._balance_turbine_temp(cycle, balance)
         self._balance_shaft_power(cycle, balance, architecture)
+        self._balance_gearbox(cycle, balance, architecture)
+        self._balance_mixer(cycle, balance, architecture)
 
     def connect_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         pass
@@ -59,17 +70,25 @@ class DesignBalancer(Balancer):
         balance.add_balance('W', units=units.MASS_FLOW, eq_units='lbf', val=self._init_mass_flow, rhs_name='Fn_target')
 
         # Use the balance parameter to control the inlet mass flow rate (to size the area)
-        cycle.connect(balance.name +'.W', cycle.inlet_el_name + '.Fl_I:stat:W')
+        cycle.connect(balance.name+'.W', cycle.inlet_el_name+'.Fl_I:stat:W')
 
         # To force the overall net thrust equal to Fn_target (rhs name; assigned in OperatingCondition.set_values)
         cycle.connect('perf.Fn', balance.name+'.lhs:W')
 
+    def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Add a balance for extraction bleed
+        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
+
+        # Extraction bleed is only active for the selected compressor
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                # Use the balance parameter to control the extraction bleed fraction from the compressor
+                cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
+                # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
+                cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
+
     def _balance_turbine_temp(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
-        if len(burners) == 0:
-            return
-        if len(burners) > 1:
-            raise RuntimeError('Currently only one burner supported for T4 balancing')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='degR', lower=1e-4, val=self._init_far, rhs_name='T4_target')
@@ -98,11 +117,30 @@ class DesignBalancer(Balancer):
             # To force the shaft net power to zero (out power equal to in power)
             cycle.connect(shaft.name+'.pwr_net', '%s.lhs:%s' % (balance.name, param_name))
 
+    def _balance_gearbox(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
+                         architecture: TurbofanArchitecture):
+        if len(architecture.get_elements_by_type(Gearbox)):
+            balance.add_balance('gb_trq', val=self._init_gearbox_torque, units=units.TORQUE, eq_units='hp', rhs_val=0.)
+            cycle.connect(balance.name+'.gb_trq', 'gearbox.trq_base')
+            cycle.connect('fan_shaft.pwr_net', balance.name+'.lhs:gb_trq')
+        else:
+            pass
+
+    def _balance_mixer(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
+                       architecture: TurbofanArchitecture):
+        if len(architecture.get_elements_by_type(Mixer)):
+            balance.add_balance('BPR', val=self._init_mixer_er, eq_units=None, lower=1e-4)
+            cycle.connect(balance.name+'.BPR', 'splitter.BPR')
+            cycle.connect('mixer.ER', balance.name+'.lhs:BPR')
+        else:
+            pass
+
 
 class OffDesignBalancer(Balancer):
     """
     Balancer for the off-design points:
     - Uses burner fuel-to-air ratio to tune the required thrust
+    - Uses compressor bleed fraction to tune the extraction bleed
     - Uses inlet mass flow rate to sync inlet area with design point
     - Uses splitter BPR to sync bypass nozzle area with design point
     - Uses shaft rpm to balance shaft net power (should be 0)
@@ -110,20 +148,23 @@ class OffDesignBalancer(Balancer):
 
     def __init__(
             self,
-            init_mass_flow = 90.,  # kg/s
-            init_bpr = 5.,
-            init_far = .017,
-            init_shaft_rpm = 5000.,  # rpm
+            init_mass_flow: float = 90.,  # kg/s
+            init_bpr: float = 5.,
+            init_far: float = .017,
+            init_shaft_rpm: float = 5000.,  # rpm
+            init_extraction_bleed_frac: float = 0.02,
     ):
         self._init_mass_flow = init_mass_flow
         self._init_bpr = init_bpr
         self._init_far = init_far
         self._init_shaft_rpm = init_shaft_rpm
+        self._init_extraction_bleed_frac = init_extraction_bleed_frac
 
     def apply(self, cycle: ArchitectureCycle, architecture: TurbofanArchitecture):
         balance = cycle.add_subsystem(self.balance_name, om.BalanceComp())
 
         self._balance_thrust(cycle, balance)
+        self._balance_extraction_bleed(cycle, balance, architecture)
         self._balance_areas(cycle, balance, architecture)
         self._balance_shaft_power(cycle, balance, architecture)
 
@@ -136,10 +177,6 @@ class OffDesignBalancer(Balancer):
 
     def _balance_thrust(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
-        if len(burners) == 0:
-            return
-        if len(burners) > 1:
-            raise RuntimeError('Currently only one burner supported for off-design T4 balancing')
 
         # Add a balance for FAR (fuel-to-air ratio)
         balance.add_balance('FAR', eq_units='lbf', lower=1e-4, val=self._init_far, rhs_name='Fn_target')
@@ -150,33 +187,46 @@ class OffDesignBalancer(Balancer):
         # To force the overall net thrust equal to Fn_target (rhs name; assigned in OperatingCondition.set_values)
         cycle.connect('perf.Fn', balance.name+'.lhs:FAR')
 
+    def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Add a balance for extraction bleed
+        balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
+
+        # Extraction bleed is only active for the selected compressor
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                # Use the balance parameter to control the extraction bleed fraction from the compressor
+                cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
+                # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
+                cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
+
     @staticmethod
     def _iter_nozzle_balances(architecture: TurbofanArchitecture):
         nozzle_names = [el.name for el in architecture.elements if isinstance(el, Nozzle)]
         inlet_names = [el.name for el in architecture.elements if isinstance(el, Inlet)]
         splitter_names = [el.name for el in architecture.elements if isinstance(el, Splitter)]
+        mixer_names = [el.name for el in architecture.elements if isinstance(el, Mixer)]
 
-        if len(inlet_names)+len(splitter_names) != len(nozzle_names):
-            raise RuntimeError('Number of inlets + number of splitters should be same as number of nozzles')
+        if len(inlet_names)+len(splitter_names)+len(mixer_names) != len(nozzle_names):
+            raise RuntimeError('Number of inlets + number of splitters + number of mixers should be same as number of nozzles')
 
-        for i, (is_inlet, el_name) in enumerate([(True, name) for name in inlet_names]+
-                                                [(False, name) for name in splitter_names]):
-            base_name = 'W' if is_inlet else 'BPR'
+        for i, (component, el_name) in enumerate([('inlet', name) for name in inlet_names]+
+                                                 [('splitter', name) for name in splitter_names]+
+                                                 [('mixer', name) for name in mixer_names]):
+            base_name = 'W' if component == 'inlet' else ('BPR' if component == 'splitter' else 'ER')
             param_name = '%s_%d' % (base_name, i)
 
-            yield is_inlet, el_name, nozzle_names[i], param_name
+            yield component, el_name, nozzle_names[i], param_name
 
     def _balance_areas(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
         """
         Areas are balanced by making sure mass flows are correct. Assumptions:
         - There is 1 inlet
         - For every additional (>1) nozzle, there is a splitter (after the inlet)
-        - Number of inlets + number of splitters = number of nozzles
-
-        NOTE: this therefore does not work if there are any flow mixers!
+        - For every mixer, there is an additional nozzle (after the inlet)
+        - Number of inlets + number of splitters + number of mixers = number of nozzles
         """
-        for is_inlet, el_name, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
-            if is_inlet:
+        for component, el_name, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
+            if component == 'inlet':
                 # Add a balance for W (mass flow rate)
                 balance.add_balance(param_name, units=units.MASS_FLOW, eq_units='inch**2', lower=5., upper=500.,
                                     val=self._init_mass_flow)
@@ -184,7 +234,7 @@ class OffDesignBalancer(Balancer):
                 # Use the balance parameter to control the inlet mass flow rate
                 cycle.connect('%s.%s' % (balance.name, param_name), el_name+'.Fl_I:stat:W')
 
-            else:
+            elif component == 'splitter':
                 # Add a balance for BPR (bypass ratio)
                 balance.add_balance(param_name, val=self._init_bpr, lower=1., upper=30., eq_units='inch**2')
 
@@ -192,7 +242,8 @@ class OffDesignBalancer(Balancer):
                 cycle.connect('%s.%s' % (balance.name, param_name), el_name+'.BPR')
 
             # To force the nozzle area equal to the design point
-            cycle.connect(nozzle_name+'.Throat:stat:area', '%s.lhs:%s' % (balance.name, param_name))
+            if component != 'mixer':
+                cycle.connect(nozzle_name+'.Throat:stat:area', '%s.lhs:%s' % (balance.name, param_name))
 
     def _connect_balance_des_od(self, mp_cycle: ArchitectureMultiPointCycle, architecture: TurbofanArchitecture):
         connect_key = 'nozzle_area'
@@ -200,8 +251,9 @@ class OffDesignBalancer(Balancer):
             return
         mp_cycle.balance_connected_des_od.add(connect_key)
 
-        for _, _, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
-            mp_cycle.pyc_connect_des_od(nozzle_name+'.Throat:stat:area', '%s.rhs:%s' % (self.balance_name, param_name))
+        for component, _, nozzle_name, param_name in self._iter_nozzle_balances(architecture):
+            if component != 'mixer':
+                mp_cycle.pyc_connect_des_od(nozzle_name+'.Throat:stat:area', '%s.rhs:%s' % (self.balance_name, param_name))
 
     def _balance_shaft_power(self, cycle: ArchitectureCycle, balance: om.BalanceComp,
                              architecture: TurbofanArchitecture):

@@ -37,11 +37,11 @@ class ArchitectingMetric:
     def get_opt_metrics(self, choices: List[ArchitectingChoice]) -> List[OutputMetric]:
         raise NotImplementedError
 
-    def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap) -> Sequence[float]:
+    def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
         raise NotImplementedError
 
-    def extract_obj(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap) -> Sequence[float]:
-        return self.extract_met(analysis_problem, result)
+    def extract_obj(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
+        return self.extract_met(analysis_problem, result, architecture)
 
-    def extract_con(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap) -> Sequence[float]:
-        return self.extract_met(analysis_problem, result)
+    def extract_con(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
+        return self.extract_met(analysis_problem, result, architecture)

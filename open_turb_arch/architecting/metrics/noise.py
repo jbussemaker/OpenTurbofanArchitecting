@@ -18,32 +18,33 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.metric import *
+from open_turb_arch.evaluation.analysis.disciplines import *
 from open_turb_arch.evaluation.architecture import *
 
-__all__ = ['TSFCMetric']
+__all__ = ['NoiseMetric']
 
 
 @dataclass(frozen=False)
-class TSFCMetric(ArchitectingMetric):
-    """Representing the TSFC as design goal or constraint."""
+class NoiseMetric(ArchitectingMetric):
+    """Representing the engine noise as design goal or constraint."""
 
-    max_tsfc: float = .15  # [g/kN s], if used as a constraint
+    max_noise: float = 100  # [dB], if used as a constraint
 
     # Specify the operating condition to extract from, otherwise will take the design condition
     condition: OperatingCondition = None
 
     def get_opt_objectives(self, choices: List[ArchitectingChoice]) -> List[Objective]:
-        return [Objective('tsfc_obj', ObjectiveDirection.MINIMIZE)]
+        return [Objective('noise_obj', ObjectiveDirection.MINIMIZE)]
 
     def get_opt_constraints(self, choices: List[ArchitectingChoice]) -> List[Constraint]:
-        return [Constraint('tsfc_con', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_tsfc)]
+        return [Constraint('noise_con', ConstraintDirection.LOWER_EQUAL_THAN, limit_value=self.max_noise)]
 
     def get_opt_metrics(self, choices: List[ArchitectingChoice]) -> List[OutputMetric]:
-        return [OutputMetric('tsfc_met')]
+        return [OutputMetric('noise_met')]
 
     def extract_met(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture) -> Sequence[float]:
-        return [self._get_tsfc(analysis_problem, result)]
+        return [self._get_weight(analysis_problem, result, architecture)]
 
-    def _get_tsfc(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap):
+    def _get_weight(self, analysis_problem: AnalysisProblem, result: OperatingMetricsMap, architecture: TurbofanArchitecture):
         ops_metrics = result[analysis_problem.design_condition] if self.condition is None else result[self.condition]
-        return ops_metrics.tsfc  # get engine TSFC as metric
+        return Noise(ops_metrics, architecture).noise_calculation()  # get engine noise as metric

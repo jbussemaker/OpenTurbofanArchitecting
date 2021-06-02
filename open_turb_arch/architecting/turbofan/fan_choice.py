@@ -18,6 +18,7 @@ Contact: jasper.bussemaker@dlr.de
 from typing import *
 from dataclasses import dataclass
 from open_turb_arch.architecting.choice import *
+from open_turb_arch.evaluation.analysis.builder import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 
@@ -32,7 +33,7 @@ class FanChoice(ArchitectingChoice):
     fix_include_fan: bool = None  # Set to True of False to fix the choice of whether to include a fan or not
 
     fixed_bpr: float = None  # Fix the bypass ratio
-    bpr_bounds: Tuple[float, float] = (2., 15.)  # Bypass ratio design bounds
+    bpr_bounds: Tuple[float, float] = (2., 12.5)  # Bypass ratio design bounds
 
     fixed_fpr: float = None  # Fix the fan pressure ratio
     fpr_bounds: Tuple[float, float] = (1.1, 1.8)
@@ -51,9 +52,9 @@ class FanChoice(ArchitectingChoice):
         ]
 
     def get_construction_order(self) -> int:
-        return 0
+        return 1
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
 
         # The BPR and FPR design variables are only active if a fan is included
@@ -68,7 +69,11 @@ class FanChoice(ArchitectingChoice):
     @staticmethod
     def _include_fan(architecture: TurbofanArchitecture, bpr: float, fpr: float):
 
-        # Create new elements: the fan and the bypass flow
+        # Find necessary elements
+        nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
+        nozzle_core.type = NozzleType.CV
+
+        # Create new elements: the fan, splitter and bypass flow
         fan = Compressor(
             name='fan', map=CompressorMap.AXI_5,
             mach=.4578, pr=fpr, eff=.89,
@@ -84,7 +89,10 @@ class FanChoice(ArchitectingChoice):
             v_loss_coefficient=.99, fuel_in_air=False,
         )
 
-        architecture.elements += [fan, splitter, bypass_nozzle]
+        # Insert fan, splitter and bypass flow into architecture elements list
+        architecture.elements.insert(1, fan)
+        architecture.elements.insert(2, splitter)
+        architecture.elements.insert(architecture.elements.index(nozzle_core)+1, bypass_nozzle)
 
         # Find inlet
         inlet = architecture.get_elements_by_type(Inlet)[0]

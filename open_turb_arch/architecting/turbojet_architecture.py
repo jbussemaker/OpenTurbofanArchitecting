@@ -11,12 +11,12 @@ def get_turbojet_architecture() -> TurbofanArchitecture:
 
     inlet.target = compressor = Compressor(
         name='compressor', map=CompressorMap.AXI_5,
-        mach=.02, pr=13.5, eff=.83,
+        mach=.4, pr=13.5, eff=.83,
     )
 
     compressor.target = burner = Burner(
         name='burner', fuel=FuelType.JET_A,
-        mach=.02, p_loss_frac=.03,
+        mach=.1, p_loss_frac=.03,
     )
 
     burner.target = turbine = Turbine(
@@ -25,7 +25,7 @@ def get_turbojet_architecture() -> TurbofanArchitecture:
     )
 
     turbine.target = nozzle = Nozzle(
-        name='nozzle', type=NozzleType.CD,
+        name='nozzle_core', type=NozzleType.CD,
         v_loss_coefficient=.99,
     )
 

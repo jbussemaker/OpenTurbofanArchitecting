@@ -34,7 +34,7 @@ class ArchitectingChoice:
         """For ordering choices into the order of applying the architecture modifications."""
         raise NotImplementedError
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem, design_vector: DecodedDesignVector) \
             -> Sequence[Union[bool, DecodedValue]]:
         """Modify the default turbojet architecture based on the given design vector. Should return for each of the
         design variables whether they are active or not, or an explicit overwritten value of the design variable."""

@@ -80,7 +80,7 @@ def test_modify_architecture(fan_an_problem):
     architecture, dv = problem.generate_architecture([1, 5., 1.5])
     assert dv == [1, 5., 1.5]
     assert len(architecture.get_elements_by_type(Compressor)) == 2
-    fan = architecture.get_elements_by_type(Compressor)[-1]
+    fan = architecture.get_elements_by_type(Compressor)[0]
     assert fan.pr == 1.5
 
     assert len(architecture.get_elements_by_type(Splitter)) == 1
@@ -89,7 +89,7 @@ def test_modify_architecture(fan_an_problem):
 
     architecture, _ = problem.generate_architecture([1, 6., 1.6])
     assert len(architecture.get_elements_by_type(Compressor)) == 2
-    fan = architecture.get_elements_by_type(Compressor)[-1]
+    fan = architecture.get_elements_by_type(Compressor)[0]
     assert fan.pr == 1.6
 
     assert len(architecture.get_elements_by_type(Splitter)) == 1
