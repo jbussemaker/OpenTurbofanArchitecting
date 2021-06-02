@@ -280,6 +280,25 @@ condition or the design condition if none specified.
 To help with testing optimization algorithms, the `ArchitectingProblem` class offers interfaces to optimization
 frameworks.
 
+#### Pymoo
+
+Integration with [Pymoo](https://pymoo.org/):
+```python
+from pymoo.optimize import minimize
+from pymoo.algorithms.nsga2 import NSGA2
+from open_turb_arch.architecting import *
+
+# Define architecting problem
+architecting_problem = ArchitectingProblem(...)
+
+# Get pymoo problem
+problem = architecting_problem.get_pymoo_problem()
+
+# Run algorithm
+algorithm = NSGA2()
+results = minimize(problem, algorithm, termination=('n_eval', 4000))
+```
+
 #### OpenMDAO
 
 Integration with [OpenMDAO](https://openmdao.org/):
