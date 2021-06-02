@@ -15,8 +15,9 @@ Copyright: (c) 2020, Deutsches Zentrum fuer Luft- und Raumfahrt e.V.
 Contact: jasper.bussemaker@dlr.de
 """
 
-
-import time
+import os
+import json
+import numpy as np
 
 from open_turb_arch.architecting import *
 from open_turb_arch.architecting.metrics import *
@@ -24,8 +25,6 @@ from open_turb_arch.architecting.turbofan import *
 from open_turb_arch.evaluation.analysis import *
 
 from open_turb_arch.architecting.pymoo import *
-from pymoo.optimize import minimize
-from pymoo.algorithms.nsga2 import NSGA2
 
 
 def get_architecting_problem():
@@ -78,4 +77,14 @@ def get_architecting_problem():
 
 
 def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem):
-    return PymooArchitectingProblem(architecting_problem)
+    prob = PymooArchitectingProblem(architecting_problem)
+
+    path = os.path.join(os.path.dirname(__file__), 'architecting_problem_pf.json')
+    if os.path.exists(path):
+        with open(path, 'r') as fp:
+            pf_data = json.load(fp)
+
+        prob._calc_pareto_front = lambda *_, **__: np.array(pf_data['f'])
+        prob._calc_pareto_set = lambda *_, **__: np.array(pf_data['x'])
+
+    return prob

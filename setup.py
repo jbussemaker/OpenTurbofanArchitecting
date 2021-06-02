@@ -52,4 +52,7 @@ if __name__ == '__main__':
         ],
         python_requires='>=3.6',
         packages=find_packages(),
+        package_data={
+            'open_turb_arch.architecting': ['architecting_problem_pf.json'],
+        },
     )
