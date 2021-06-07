@@ -34,6 +34,7 @@ if __name__ == '__main__':
     architecting_problem = get_architecting_problem()
 
     architecting_problem.print_results = True
+    architecting_problem.verbose = True
     architecting_problem._max_iter = 30
     architecting_problem.save_results_folder = 'results'  # Insert folder name to save results
     architecting_problem.save_results_combined = True

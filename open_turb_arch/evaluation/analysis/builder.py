@@ -16,6 +16,7 @@ Contact: jasper.bussemaker@dlr.de
 """
 
 import sys
+import warnings
 import numpy as np
 from typing import *
 import openmdao.api as om
@@ -461,10 +462,14 @@ class CycleBuilder:
         om.n2(problem, **kwargs)
 
     @staticmethod
-    def run(problem: om.Problem):
+    def run(problem: om.Problem, print_solver=True):
         problem.set_solver_print(level=-1)
-        problem.set_solver_print(level=2, depth=1)
-        problem.run_model()
+        if print_solver:
+            problem.set_solver_print(level=2, depth=1)
+
+        with warnings.catch_warnings():
+            # warnings.simplefilter('ignore', Sol)
+            problem.run_model()
 
     def print_results(self, problem: om.Problem, fp=sys.stdout):
         self._mp_cycle.print_results(problem, fp=fp)
