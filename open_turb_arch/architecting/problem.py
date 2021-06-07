@@ -21,7 +21,6 @@ import pickle
 import datetime
 import numpy as np
 from typing import *
-import multiprocessing
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.opt_defs import *
 from open_turb_arch.evaluation.analysis.builder import *
@@ -66,9 +65,8 @@ class ArchitectingProblem:
 
         self._check_definitions()
 
-        manager = multiprocessing.Manager()
-        self._results_cache = manager.dict()
-        self._eval_id_cache = manager.dict()
+        self._results_cache = {}
+        self._eval_id_cache = {}
         self._last_eval_id = None
         self.save_results_folder = save_results_folder
         self.save_results_combined = save_results_combined
