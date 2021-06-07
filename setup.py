@@ -43,7 +43,7 @@ if __name__ == '__main__':
             'pytest',
             'dataclasses',
             'pycycle @ git+https://github.com/jbussemaker/pyCycle.git#egg=pycycle',
-            'openmdao>=3.4.0',
+            'openmdao==3.4.0',
             'ordered_set',
             'numpy',
             'Platypus-Opt',
