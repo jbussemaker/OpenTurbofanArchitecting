@@ -51,6 +51,7 @@ class ArchitectingProblem:
 
         self._an_problem = analysis_problem
         self.print_results = False
+        self.verbose = False
         self._max_iter = max_iter
 
         self._choices = sorted(choices, key=lambda choice: choice.get_construction_order())
@@ -284,7 +285,7 @@ class ArchitectingProblem:
         openmdao_problem = builder.get_problem()
 
         # Run the problem
-        builder.run(openmdao_problem)
+        builder.run(openmdao_problem, print_solver=self.verbose)
         if self.print_results:
             builder.print_results(openmdao_problem)
         builder.view_n2(openmdao_problem, show_browser=False)
