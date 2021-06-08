@@ -202,15 +202,13 @@ class ArchitectingProblem:
         eval_id = np.random.randint(1e8, 1e9-1)
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         path = os.path.join(self.save_results_folder, 'results_%s_%d.txt' % (ts, eval_id))
-        f = open(path, 'a')
-        f.write(str(kwargs))
-        f.close()
+        with open(path, 'a') as f:
+            f.write(str(kwargs))
 
         if self.save_results_combined:
             path_combo = os.path.join(self.save_results_folder, 'results_combined.txt')
-            f = open(path_combo, 'a')
-            f.write(str(kwargs)+'\n\n')
-            f.close()
+            with open(path_combo, 'a') as f:
+                f.write(str(kwargs)+'\n\n')
 
         # path = os.path.join(self.save_results_folder, 'results_%s_%d.pkl' % (ts, eval_id))
         # with open(path, 'wb') as fp:
