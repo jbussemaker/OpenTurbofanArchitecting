@@ -119,6 +119,19 @@ class Mixer(ArchElement):
         mp_cycle.pyc_connect_des_od(self.name+'.Fl_O:stat:area', self.name+'.area')
         mp_cycle.pyc_connect_des_od(self.name+'.Fl_I1_calc:stat:area', self.name+'.Fl_I1_stat_calc.area')
 
+    def __repr__(self):
+        if self.source_1 is None:
+            s1_str = 'None'
+        else:
+            s1_str = '%s(name=%r, ...)' % (self.source_1.__class__.__name__, self.source_1.name)
+
+        if self.source_2 is None:
+            s2_str = 'None'
+        else:
+            s2_str = '%s(name=%r, ...)' % (self.source_2.__class__.__name__, self.source_2.name)
+
+        return 'Mixer(source_1=%s, source_2=%s, target=%r, mach=%r)' % (s1_str, s2_str, self.target, self.mach)
+
 
 @dataclass(frozen=False)
 class BleedInter(ArchElement):
