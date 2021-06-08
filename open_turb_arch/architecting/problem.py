@@ -198,17 +198,26 @@ class ArchitectingProblem:
         if self.save_results_folder is None:
             return
 
+        try:
+            contents = str(kwargs)
+        except RecursionError:
+            kwargs['architecture'] = 'RECURSION_ERROR'
+            try:
+                contents = str(kwargs)
+            except RecursionError:
+                contents = 'RECURSION_ERROR'
+
         os.makedirs(self.save_results_folder, exist_ok=True)
         eval_id = np.random.randint(1e8, 1e9-1)
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         path = os.path.join(self.save_results_folder, 'results_%s_%d.txt' % (ts, eval_id))
         with open(path, 'a') as f:
-            f.write(str(kwargs))
+            f.write(contents)
 
         if self.save_results_combined:
             path_combo = os.path.join(self.save_results_folder, 'results_combined.txt')
             with open(path_combo, 'a') as f:
-                f.write(str(kwargs)+'\n\n')
+                f.write(contents+'\n\n')
 
         # path = os.path.join(self.save_results_folder, 'results_%s_%d.pkl' % (ts, eval_id))
         # with open(path, 'wb') as fp:
