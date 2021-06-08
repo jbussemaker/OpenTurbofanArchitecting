@@ -45,7 +45,7 @@ class ArchitectingProblem:
 
     def __init__(self, analysis_problem: AnalysisProblem, choices: List[ArchitectingChoice],
                  objectives: List[ArchitectingMetric], constraints: List[ArchitectingMetric] = None,
-                 metrics: List[ArchitectingMetric] = None, max_iter=20, save_results_folder=None,
+                 metrics: List[ArchitectingMetric] = None, max_iter=30, save_results_folder=None,
                  save_results_combined=None):
 
         self._an_problem = analysis_problem
