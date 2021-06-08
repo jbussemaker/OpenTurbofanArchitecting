@@ -130,7 +130,12 @@ class Mixer(ArchElement):
         else:
             s2_str = '%s(name=%r, ...)' % (self.source_2.__class__.__name__, self.source_2.name)
 
-        return 'Mixer(source_1=%s, source_2=%s, target=%r, mach=%r)' % (s1_str, s2_str, self.target, self.mach)
+        if self.target is None:
+            tgt_str = 'None'
+        else:
+            tgt_str = '%s(name=%r, ...)' % (self.target.__class__.__name__, self.target.name)
+
+        return 'Mixer(source_1=%s, source_2=%s, target=%r, mach=%r)' % (s1_str, s2_str, tgt_str, self.mach)
 
 
 @dataclass(frozen=False)
