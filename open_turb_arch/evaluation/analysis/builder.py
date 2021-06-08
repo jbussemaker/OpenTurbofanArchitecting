@@ -56,7 +56,11 @@ class OperatingCondition:
         problem.set_val(self.name+'.fc.MN', self.mach)
         problem.set_val(self.name+'.fc.alt', self.alt, units=units.ALTITUDE)
         problem.set_val('%s.%s.Fn_target' % (self.name, self.balancer.balance_name), self.thrust, units=units.FORCE)
-        problem.set_val('%s.%s.extraction_bleed_target' % (self.name, self.balancer.balance_name), self.bleed_offtake, units=units.MASS_FLOW)
+
+        try:
+            problem.set_val('%s.%s.extraction_bleed_target' % (self.name, self.balancer.balance_name), self.bleed_offtake, units=units.MASS_FLOW)
+        except KeyError:
+            pass  # Happens when no extraction bleed is added
 
         if self.d_temp != 0:
             problem.set_val(self.name+'.fc.dTs', self.d_temp, units=units.TEMPERATURE)

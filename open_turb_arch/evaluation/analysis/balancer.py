@@ -76,6 +76,13 @@ class DesignBalancer(Balancer):
         cycle.connect('perf.Fn', balance.name+'.lhs:W')
 
     def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Check if we have extraction bleed
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                break
+        else:
+            return
+
         # Add a balance for extraction bleed
         balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
 
@@ -86,6 +93,7 @@ class DesignBalancer(Balancer):
                 cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
                 # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
                 cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
+                break
 
     def _balance_turbine_temp(self, cycle: ArchitectureCycle, balance: om.BalanceComp):
         burners = cycle.get_element_names(pyc.Combustor, prefix_cycle_name=False)
@@ -188,6 +196,13 @@ class OffDesignBalancer(Balancer):
         cycle.connect('perf.Fn', balance.name+'.lhs:FAR')
 
     def _balance_extraction_bleed(self, cycle: ArchitectureCycle, balance: om.BalanceComp, architecture: TurbofanArchitecture):
+        # Check if we have extraction bleed
+        for compressor in architecture.get_elements_by_type(Compressor):
+            if compressor.offtake_bleed:
+                break
+        else:
+            return
+
         # Add a balance for extraction bleed
         balance.add_balance('extraction_bleed', eq_units='lbm/s', val=self._init_extraction_bleed_frac, rhs_name='extraction_bleed_target')
 
@@ -198,6 +213,7 @@ class OffDesignBalancer(Balancer):
                 cycle.connect(balance.name+'.extraction_bleed', compressor.name+'.bleed_offtake_atmos:frac_W')
                 # To force the extraction bleed fraction equal to bleed_target (rhs name; assigned in DesignCondition.set_values)
                 cycle.connect(compressor.name+'.bleed_offtake_atmos:stat:W', balance.name+'.lhs:extraction_bleed')
+                break
 
     @staticmethod
     def _iter_nozzle_balances(architecture: TurbofanArchitecture):
