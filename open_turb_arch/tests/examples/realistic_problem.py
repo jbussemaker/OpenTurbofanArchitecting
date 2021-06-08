@@ -20,6 +20,7 @@ NOx and jet Mach number).
 """
 
 
+import os
 import time
 import pickle
 import multiprocessing
@@ -29,6 +30,8 @@ from open_turb_arch.architecting.architecting_problem import get_architecting_pr
 from pymoo.optimize import minimize
 from pymoo.algorithms.nsga2 import NSGA2
 from pymoo.operators.sampling.latin_hypercube_sampling import LatinHypercubeSampling
+
+os.environ['OPENMDAO_REQUIRE_MPI'] = 'false'  # Suppress OpenMDAO MPI import warnings
 
 if __name__ == '__main__':
     architecting_problem = get_architecting_problem()
