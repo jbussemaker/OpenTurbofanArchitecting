@@ -26,7 +26,7 @@ def simple_turbojet_arch():
     inlet.target = compressor = Compressor(name='comp', map=CompressorMap.AXI_5, mach=.02, pr=13.5, eff=.83)
     compressor.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
     burner.target = turbine = Turbine(name='turb', map=TurbineMap.LPT_2269, mach=.4, eff=.86)
-    turbine.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
+    turbine.target = nozzle = Nozzle(name='nozzle_core', type=NozzleType.CD, v_loss_coefficient=.99)
     shaft = Shaft(name='shaft', connections=[compressor, turbine], rpm_design=8070, power_loss=0.)
 
     return TurbofanArchitecture(elements=[inlet, compressor, burner, turbine, nozzle, shaft])
@@ -97,7 +97,7 @@ def simple_turbofan_arch():
     splitter.target_core = compressor = Compressor(name='comp', map=CompressorMap.AXI_5, mach=.02, pr=13.5, eff=.83)
     compressor.target = burner = Burner(name='burner', fuel=FuelType.JET_A, mach=.02, p_loss_frac=.03)
     burner.target = turbine = Turbine(name='turb', map=TurbineMap.LPT_2269, mach=.4, eff=.86)
-    turbine.target = nozzle = Nozzle(name='nozz', type=NozzleType.CD, v_loss_coefficient=.99)
+    turbine.target = nozzle = Nozzle(name='nozzle_core', type=NozzleType.CD, v_loss_coefficient=.99)
     shaft = Shaft(name='shaft', connections=[compressor, turbine, fan], rpm_design=8070, power_loss=0.)
 
     splitter.target_bypass = bypass_nozzle = \

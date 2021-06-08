@@ -37,8 +37,8 @@ class CompressorPRChoice(ArchitectingChoice):
         """For ordering choices into the order of applying the architecture modifications."""
         return 0
 
-    def modify_architecture(self, architecture: TurbofanArchitecture, design_vector: DecodedDesignVector) \
-            -> Sequence[Union[bool, DecodedValue]]:
+    def modify_architecture(self, architecture: TurbofanArchitecture, analysis_problem: AnalysisProblem,
+                            design_vector: DecodedDesignVector) -> Sequence[Union[bool, DecodedValue]]:
         """Modify the default turbojet architecture based on the given design vector. Should return for each of the
         design variables whether they are active or not."""
 
