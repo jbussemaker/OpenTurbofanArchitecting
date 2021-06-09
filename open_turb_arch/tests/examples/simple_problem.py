@@ -19,8 +19,12 @@ Simple architecting problem: only contains existing engine architectures,
 """
 
 
-import multiprocessing
+import os
 import time
+import pickle
+import multiprocessing
+
+os.environ['OPENMDAO_REQUIRE_MPI'] = 'false'  # Suppress OpenMDAO MPI import warnings
 
 from open_turb_arch.architecting import *
 from open_turb_arch.architecting.metrics import *
@@ -30,7 +34,6 @@ from open_turb_arch.evaluation.analysis import *
 from open_turb_arch.architecting.pymoo import *
 from pymoo.optimize import minimize
 from pymoo.algorithms.nsga2 import NSGA2
-from pymoo.model.evaluator import Evaluator
 from pymoo.operators.sampling.latin_hypercube_sampling import LatinHypercubeSampling
 
 
@@ -79,23 +82,27 @@ def get_pymoo_architecting_problem():
 
 
 if __name__ == '__main__':
-
     architecting_problem = get_architecting_problem()
 
     architecting_problem.print_results = True
+    architecting_problem.verbose = True
     architecting_problem._max_iter = 30
-    architecting_problem.save_results_folder = ''  # Insert folder name to save results
+    architecting_problem.save_results_folder = 'results'  # Insert folder name to save results
     architecting_problem.save_results_combined = True
 
     # The number of processes to be used
-    pool = multiprocessing.Pool(3)
+    with multiprocessing.Pool(3) as pool:
+        t = time.time()
+        problem = PymooArchitectingProblem(architecting_problem)
+        problem.parallelization = ('starmap', pool.starmap)
 
-    t = time.time()
-    problem = PymooArchitectingProblem(architecting_problem)
-    problem.parallelization = ('starmap', pool.starmap)
-    pop = LatinHypercubeSampling().do(problem, 75)
-    algorithm = NSGA2(pop_size=75, sampling=LatinHypercubeSampling())
-    Evaluator().eval(problem, pop)
-    result = minimize(problem, algorithm, termination=('n_eval', 1000), verbose=True)
-    elapsed = time.time() - t
-    pool.close()
+        algorithm = NSGA2(
+            pop_size=75,
+            sampling=LatinHypercubeSampling()
+        )
+        result = minimize(problem, algorithm, termination=('n_eval', 1000), verbose=True, save_history=True)
+        elapsed = time.time() - t
+
+    architecting_problem.finalize()
+    with open(architecting_problem.save_results_folder+'/pymoo_algo_results.pkl', 'wb') as fp:
+        pickle.dump(result, fp)
