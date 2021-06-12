@@ -38,6 +38,9 @@ class FanChoice(ArchitectingChoice):
     fixed_fpr: float = None  # Fix the fan pressure ratio
     fpr_bounds: Tuple[float, float] = (1.1, 1.8)
 
+    fan_eff: float = None  # Efficiency of the fan
+    bypass_v_loss_coefficient: float = None  # Flow velocity loss coefficient of the bypass nozzle
+
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             DiscreteDesignVariable(
@@ -62,12 +65,12 @@ class FanChoice(ArchitectingChoice):
         is_active = [True, include_fan, include_fan]
 
         if include_fan:
-            self._include_fan(architecture, bpr, fpr)
+            self._include_fan(architecture, bpr, fpr, self.fan_eff, self.bypass_v_loss_coefficient)
 
         return is_active
 
     @staticmethod
-    def _include_fan(architecture: TurbofanArchitecture, bpr: float, fpr: float):
+    def _include_fan(architecture: TurbofanArchitecture, bpr: float, fpr: float, fan_eff: float, bypass_v_loss_coefficient):
 
         # Find necessary elements
         nozzle_core = architecture.get_elements_by_type(Nozzle)[0]
@@ -76,7 +79,7 @@ class FanChoice(ArchitectingChoice):
         # Create new elements: the fan, splitter and bypass flow
         fan = Compressor(
             name='fan', map=CompressorMap.AXI_5,
-            mach=.4578, pr=fpr, eff=.89,
+            mach=.4578, pr=fpr, eff=.89 if fan_eff is None else fan_eff,
         )
 
         fan.target = splitter = Splitter(
@@ -85,8 +88,8 @@ class FanChoice(ArchitectingChoice):
         )
 
         splitter.target_bypass = bypass_nozzle = Nozzle(
-            name='bypass_nozzle', type=NozzleType.CV,
-            v_loss_coefficient=.99, fuel_in_air=False,
+            name='bypass_nozzle', type=NozzleType.CV, fuel_in_air=False,
+            v_loss_coefficient=.99 if bypass_v_loss_coefficient is None else bypass_v_loss_coefficient,
         )
 
         # Insert fan, splitter and bypass flow into architecture elements list

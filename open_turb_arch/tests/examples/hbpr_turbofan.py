@@ -32,7 +32,7 @@ def get_architecting_problem():
             thrust=26244.5,  # Thrust [N]
             turbine_in_temp=1314,  # Turbine inlet temperature [C]
             bleed_offtake=0,  # Extraction bleed offtake [kg/s]
-            power_offtake=0,  # Power offtake [W]
+            power_offtake=186425,  # Power offtake [W]
             balancer=DesignBalancer(init_turbine_pr=4.46, init_mass_flow=168, init_extraction_bleed_frac=0),
         ),
     )
@@ -40,8 +40,9 @@ def get_architecting_problem():
     return ArchitectingProblem(
         analysis_problem=analysis_problem,
         choices=[
-            FanChoice(True, fixed_bpr=5.105, fixed_fpr=1.685),
-            ShaftChoice(fixed_number_shafts=2, fixed_opr=30.094, fixed_pr_compressor_ip=0.18, fixed_rpm_shaft_hp=14705.7, fixed_rpm_shaft_ip=4666.1),
+            FanChoice(True, fixed_bpr=5.105, fixed_fpr=1.685, fan_eff=0.8948, bypass_v_loss_coefficient=0.9939),
+            ShaftChoice(fixed_number_shafts=2, fixed_opr=30.094, fixed_pr_compressor_ip=0.18, fixed_rpm_shaft_hp=14705.7, fixed_rpm_shaft_ip=4666.1,
+                        inlet_p_recovery=0.999, comp_hp_eff=0.8707, comp_ip_eff=0.9243, burner_p_loss_frac=0.054, turb_hp_eff=0.8888, turb_ip_eff=0.8996, core_nozzle_v_loss_coefficient=0.9933),
             CoolingBleedChoice(fix_ab_hpc_total=0.070982, fix_ab_hi_frac_w=1, fix_eb_hb_total=0.16847, fix_eb_hbi_frac_w=0, fix_eb_ihl_frac_w=0),
             OfftakesChoice(1, 1),
         ],

@@ -46,6 +46,16 @@ class ShaftChoice(ArchitectingChoice):
 
     rpm_shaft_bounds: Tuple[float, float] = (1000, 20000)  # Shaft rpm bounds
 
+    inlet_p_recovery: float = None  # Pressure recovery of the inlet
+    comp_hp_eff: float = None  # Efficiency of the HPC
+    comp_ip_eff: float = None  # Efficiency of the IPC
+    comp_lp_eff: float = None  # Efficiency of the LPC
+    burner_p_loss_frac: float = None  # Pressure loss of the main burner
+    turb_hp_eff: float = None  # Efficiency of the HPT
+    turb_ip_eff: float = None  # Efficiency of the IPT
+    turb_lp_eff: float = None  # Efficiency of the LPT
+    core_nozzle_v_loss_coefficient: float = None  # Flow velocity loss coefficient of the core nozzle
+
     def get_design_variables(self) -> List[DesignVariable]:
         return [
             DiscreteDesignVariable(
@@ -115,7 +125,17 @@ class ShaftChoice(ArchitectingChoice):
 
         is_active = [True, True, pr_percentages[0], pr_percentages[1], True, number_shafts >= 2, number_shafts == 3]
 
-        self._add_shafts(architecture, number_shafts-1, pr_compressor, rpm_shaft, fan_present, crtf_present)
+        comp_eff = [self.comp_hp_eff, self.comp_ip_eff, self.comp_lp_eff]
+        turb_eff = [self.turb_hp_eff, self.turb_ip_eff, self.turb_lp_eff]
+        self._add_shafts(architecture, number_shafts-1, pr_compressor, rpm_shaft, fan_present, crtf_present, comp_eff, turb_eff)
+
+        # Tune the efficiencies of the components
+        inlet = architecture.get_elements_by_type(Inlet)[0]
+        inlet.p_recovery = self.inlet_p_recovery if self.inlet_p_recovery is not None else inlet.p_recovery
+        burner = architecture.get_elements_by_type(Burner)[0]
+        burner.p_loss_frac = self.burner_p_loss_frac if self.burner_p_loss_frac is not None else burner.p_loss_frac
+        core_nozzle = architecture.get_elements_by_type(Nozzle)[0]
+        core_nozzle.v_loss_coefficient = self.core_nozzle_v_loss_coefficient if self.core_nozzle_v_loss_coefficient is not None else core_nozzle.v_loss_coefficient
 
         return is_active
 
@@ -144,15 +164,19 @@ class ShaftChoice(ArchitectingChoice):
         return [pr_percentages_sum, pr_hpc, pr_ipc, pr_lpc]
 
     @staticmethod
-    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list, fan_present: bool, crtf_present: bool):
+    def _add_shafts(architecture: TurbofanArchitecture, number_shafts: int, pr_compressor: list, rpm_shaft: list, fan_present: bool, crtf_present: bool,
+                    comp_eff: list, turb_eff: list):
 
         # Find the inlet, HP compressor and HP shaft
         inlet = architecture.get_elements_by_type(Inlet)[0]
         compressor = architecture.get_elements_by_type(Compressor)[-1]
+        turbine = architecture.get_elements_by_type(Turbine)[0]
         shaft = architecture.get_elements_by_type(Shaft)[-1]
 
         # Adjust the HP compressor pressure ratio and shaft rpm
         compressor.pr = pr_compressor[0]
+        compressor.eff = compressor.eff if comp_eff[0] is None else comp_eff[0]
+        turbine.eff = turbine.eff if turb_eff[0] is None else turb_eff[0]
         shaft.rpm_design = rpm_shaft[0]
 
         for number in range(0, number_shafts):
@@ -168,13 +192,13 @@ class ShaftChoice(ArchitectingChoice):
 
             # Create new elements: compressor, turbine and shaft
             comp_new = Compressor(
-                name='comp_'+shaft_name, map=CompressorMap.AXI_5,
-                mach=compressor.mach*1.15, pr=pr_compressor[number+1], eff=compressor.eff,
+                name='comp_'+shaft_name, map=CompressorMap.AXI_5, pr=pr_compressor[number+1],
+                mach=compressor.mach*1.15, eff=compressor.eff if comp_eff[number+1] is None else comp_eff[number+1],
             )
 
             turb_new = Turbine(
                 name='turb_'+shaft_name, map=TurbineMap.LPT_2269,
-                mach=turbine.mach*1.15, eff=turbine.eff,
+                mach=turbine.mach*1.15, eff=turbine.eff if turb_eff[number+1] is None else turb_eff[number+1],
             )
 
             shaft_new = Shaft(
