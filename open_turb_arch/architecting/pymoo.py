@@ -150,16 +150,20 @@ class PymooArchitectingProblem(Problem):
 class ArchitectingProblemRepair(Repair):
     """Repair operating to make sure that integer variables are actually integers after sampling or mating."""
 
-    def __init__(self, is_discrete_mask):
+    def __init__(self, is_discrete_mask, impute=True):
         super(ArchitectingProblemRepair, self).__init__()
 
         self.is_discrete_mask = is_discrete_mask
+        self.impute = impute
 
     def _do(self, problem: Problem, pop: Union[Population, np.ndarray], **kwargs):
         is_array = not isinstance(pop, Population)
         x = pop if is_array else pop.get("X")
 
         x = self.correct_x(x, self.is_discrete_mask)
+
+        if self.impute and hasattr(problem, 'is_active'):
+            _, x = problem.is_active(x)
 
         if is_array:
             return x
