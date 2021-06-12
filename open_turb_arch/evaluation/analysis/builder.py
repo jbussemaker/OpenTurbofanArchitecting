@@ -499,7 +499,11 @@ class CycleBuilder:
 
         with warnings.catch_warnings():
             # warnings.simplefilter('ignore', Sol)
+            np.seterr(all='ignore')
             problem.run_model()
+
+            # pyCycle may set numpy error raising behavior: reset to ignore here
+            np.seterr(all='ignore')
 
     def print_results(self, problem: om.Problem, fp=sys.stdout):
         self._mp_cycle.print_results(problem, fp=fp)
