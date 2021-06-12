@@ -116,6 +116,7 @@ class PymooArchitectingProblem(Problem):
         x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x)]
         imputed_design_vector, objectives, constraints, _ = self.problem.evaluate(x_arch)
         out['ID'] = self.problem.get_last_eval_id() or -1
+        out['is_active'] = self.problem.get_last_is_active()
 
         # Correct directions of objectives to represent minimization
         objectives = [-val if self.obj_is_max[j] else val for j, val in enumerate(objectives)]
@@ -128,6 +129,22 @@ class PymooArchitectingProblem(Problem):
         out['F'] = objectives
         if len(constraints) > 0:
             out['G'] = constraints
+
+    def is_active(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Method to querying whether design variables are active.
+        Returns boolean matrix with same shape as the design vectors, and the imputed design vectors."""
+
+        is_discrete_mask = self.is_discrete_mask
+        is_active = np.ones(x.shape, dtype=bool)
+        x = ArchitectingProblemRepair.correct_x(x, is_discrete_mask)
+        x_imp = x.copy()
+        for i in range(x.shape[0]):
+            x_arch = [int(val) if is_discrete_mask[j] else float(val) for j, val in enumerate(x[i, :])]
+            _, x_imp_i = self.problem.generate_architecture(x_arch)
+            x_imp[i, :] = x_imp_i
+            is_active[i, :] = self.problem.get_last_is_active()
+
+        return is_active, x_imp
 
 
 class ArchitectingProblemRepair(Repair):

@@ -70,6 +70,7 @@ class ArchitectingProblem:
         self._last_eval_id = None
         self.save_results_folder = save_results_folder
         self.save_results_combined = save_results_combined
+        self._last_is_active = None
 
     @property
     def analysis_problem(self) -> AnalysisProblem:
@@ -238,6 +239,7 @@ class ArchitectingProblem:
 
         architecture = self._get_default_architecture()
         i_dv = 0
+        is_active = np.ones((len(imputed_full_design_vector),), dtype=bool)
         for i, choice in enumerate(self.choices):
             n_dv = len(self._opt_des_vars[i])
             is_active_or_overwrite = choice.modify_architecture(architecture, self.analysis_problem, decoded_design_vector[i_dv:i_dv+n_dv])
@@ -246,13 +248,19 @@ class ArchitectingProblem:
             for j, is_act_or_overwrite in enumerate(is_active_or_overwrite):
                 if is_act_or_overwrite is False:  # Not active --> impute the value
                     imputed_full_design_vector[i_dv+j] = self._opt_des_vars[i][j].get_imputed_value()
+                    is_active[i_dv+j] = False
                 elif is_act_or_overwrite is not True:  # Explicit overwritten value provided
                     imputed_full_design_vector[i_dv+j] = self._opt_des_vars[i][j].encode(is_act_or_overwrite)
+                    is_active[i_dv+j] = False
 
             i_dv += n_dv
 
         imputed_free_design_vector = self.get_free_design_vector(imputed_full_design_vector)
+        self._last_is_active = np.array(self.get_free_design_vector(is_active))
         return architecture, imputed_free_design_vector
+
+    def get_last_is_active(self) -> np.ndarray:
+        return self._last_is_active
 
     def get_full_design_vector(self, free_design_vector: DesignVector) -> Tuple[DesignVector, DecodedDesignVector]:
         full_design_vector, decoded_design_vector = [], []

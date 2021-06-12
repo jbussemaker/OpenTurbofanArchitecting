@@ -272,6 +272,11 @@ def test_generate_architecture(an_problem):
         assert free_des_vector[1] == problem.free_opt_des_vars[1].get_imputed_value()
         assert free_des_vector[2] == problem.free_opt_des_vars[2].encode(7)
 
+        is_active = problem.get_last_is_active()
+        assert is_active is not None
+        assert len(is_active) == len(free_des_vector)
+        assert np.all(is_active == [True, False, False])
+
     n_dv = 0
     unique_dvs = set()
     for dv in problem.iter_design_vectors(n_cont=5):
@@ -279,6 +284,7 @@ def test_generate_architecture(an_problem):
         architecture, imputed_dv = problem.generate_architecture(dv)
         assert isinstance(architecture, TurbofanArchitecture)
         assert len(imputed_dv) == len(dv)
+        assert problem.get_last_is_active() is not None
 
         unique_dvs.add(tuple(imputed_dv))
 
@@ -311,6 +317,7 @@ def test_evaluate(an_problem):
         assert len(free_des_vector) == len(dv)
         assert free_des_vector[1] == problem.free_opt_des_vars[1].get_imputed_value()
         assert free_des_vector[2] == 1
+        assert np.all(problem.get_last_is_active() == [True, False, False])
 
         assert obj == [.10*dv[0]]
         assert con == [.15*dv[0]]
@@ -502,6 +509,7 @@ def test_pymoo_problem(an_problem):
     sampling = FloatRandomSampling()
     pop = sampling.do(pymoo_problem, 100)
     assert len(pop) == 100
+    x_init = pop.get('X').copy()
 
     evaluator = Evaluator()
     evaluator.eval(pymoo_problem, pop)
@@ -512,6 +520,17 @@ def test_pymoo_problem(an_problem):
     dv1 = x[:, 0]
     assert np.all(x[:, 1] == 0)
     assert np.all(x[:, 2] == 1)
+    assert not np.all(x == x_init)
+
+    is_active = pop.get('is_active')
+    assert is_active is not None
+    assert is_active.shape == x.shape
+    assert np.sum(np.sum(is_active)) > 0
+    assert np.sum(is_active[:, 0]) > np.sum(is_active[:, -1])
+
+    is_active_q, x_imp = pymoo_problem.is_active(x_init)
+    assert np.all(is_active_q == is_active)
+    assert np.all(x_imp == x)
 
     assert all([pop[i].F is not None for i in range(len(pop))])
     f = pop.get('F')
