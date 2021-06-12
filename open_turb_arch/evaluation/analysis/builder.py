@@ -27,6 +27,7 @@ import open_turb_arch.evaluation.architecture.units as units
 from open_turb_arch.evaluation.architecture.turbomachinery import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.architecture.architecture import *
+from open_turb_arch.evaluation.analysis.disciplines import *
 
 __all__ = ['CycleBuilder', 'ArchitectureCycle', 'ArchitectureMultiPointCycle', 'OperatingCondition', 'DesignCondition',
            'EvaluateCondition', 'OperatingMetrics', 'AnalysisProblem']
@@ -260,6 +261,7 @@ class ArchitectureCycle(pyc.Cycle):
 
     def print_results(self, problem: om.Problem, fp=sys.stdout):
         self._print_performance(problem, fp=fp)
+        self._print_disciplines(problem, fp=fp)
 
         flow_stations = ['%s.fc.Fl_O' % self.name]
         massflow_inlet = problem.get_val('%s.inlet.Fl_O:stat:W' % self.name, get_remote=None),
@@ -288,14 +290,21 @@ class ArchitectureCycle(pyc.Cycle):
 
         pyc.print_shaft(problem, self.get_element_names(pyc.Shaft), file=fp)
 
-        pyc.print_bleed(problem, self.get_element_names(pyc.Compressor), file=fp)
-        bleed_names = self.get_element_names(pyc.BleedOut)
-        if len(bleed_names) > 0:
-            pyc.print_bleed(problem, bleed_names, file=fp)
+        gearbox_names = self.get_element_names(pyc.Gearbox)
+        if len(gearbox_names) > 0:
+            pyc.print_gearbox(problem, gearbox_names, file=fp)
+
+        heatexchanger_names = self.get_element_names(pyc.HeatExchanger)
+        if len(heatexchanger_names) > 0:
+            pyc.print_heatexchanger(problem, heatexchanger_names, file=fp)
 
         mixer_names = self.get_element_names(pyc.Mixer)
         if len(mixer_names) > 0:
             pyc.print_mixer(problem, mixer_names, file=fp)
+
+        bleed_names = self.get_element_names(pyc.BleedOut)+self.get_element_names(pyc.Compressor)
+        if len(bleed_names) > 0:
+            pyc.print_bleed(problem, bleed_names, file=fp)
 
     def get_element_names(self, el_type: Type[om.Group], prefix_cycle_name=True) -> List[str]:
         return ['%s.%s' % (self.name, el.name) if prefix_cycle_name else el.name
@@ -321,7 +330,24 @@ class ArchitectureCycle(pyc.Cycle):
         print("----------------------------------------------------------------------------", file=fp, flush=True)
         print("                       PERFORMANCE CHARACTERISTICS", file=fp, flush=True)
         print("    Mach      Alt       W      Fn      Fg    Fram     OPR     TSFC  ", file=fp, flush=True)
+        print("    [-]       [ft]    [kg/s]   [N]     [N]   [-]      [-]    [g/kNs]  ", file=fp, flush=True)
         print(" %7.5f  %7.1f %7.3f %7.1f %7.1f %7.1f %7.3f  %7.5f" % data, file=fp, flush=True)
+
+    def _print_disciplines(self, problem: om.Problem, fp=sys.stdout):
+        data = (
+            Weight(self.get_metrics(problem), self.architecture).weight_calculation()[0],
+            Length(self.get_metrics(problem), self.architecture).length_calculation()[0],
+            Diameter(self.get_metrics(problem), self.architecture).diameter_calculation()[1],
+            NOx(self.get_metrics(problem)).NOx_calculation(),
+            Noise(self.get_metrics(problem), self.architecture).noise_calculation()
+        )
+
+        print("----------------------------------------------------------------------------", file=fp, flush=True)
+        print("                             DISCIPLINE OUTPUT", file=fp, flush=True)
+        print("   System weight   Max length   Max diameter   Take-off NOx   Take-off noise  ", file=fp, flush=True)
+        print("        [kg]           [m]          [m]        [g/kg fuel]        [dB]  ", file=fp, flush=True)
+        print(" %12.2f  %11.2f  %11.2f  %14.2f  %14.2f" % data, file=fp, flush=True)
+        print("----------------------------------------------------------------------------", file=fp, flush=True)
 
     def get_metrics(self, problem: om.Problem) -> OperatingMetrics:
         def _float(val):

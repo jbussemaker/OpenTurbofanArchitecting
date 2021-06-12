@@ -20,7 +20,6 @@ from math import *
 import numpy as np
 from dataclasses import dataclass
 from open_turb_arch.evaluation.architecture import *
-from open_turb_arch.evaluation.analysis import *
 
 __all__ = ['Weight', 'Length', 'Diameter', 'NOx', 'Noise']
 
@@ -32,7 +31,7 @@ class Weight:
      Turbofan Propulsion System Weight and Dimensions (Waters & Schairer, 1977) and Advanced Aircraft Design:
      Conceptual Design, Analysis and Optimization of Subsonic Civil Airplanes (Torenbeek, 2013)."""
 
-    ops_metrics: OperatingMetrics
+    ops_metrics: None
     architecture: TurbofanArchitecture
 
     def check_architecture(self):
@@ -117,7 +116,7 @@ class Length:
     Omspoeld Gondeloppervlak van Enkel- en Dubbelstroom Straalmotoren voor Civiele VLiegtuigen
     (Torenbeek & Berenschot, 1983)."""
 
-    ops_metrics: OperatingMetrics
+    ops_metrics: None
     architecture: TurbofanArchitecture
 
     def check_architecture(self):
@@ -182,7 +181,7 @@ class Diameter:
     Omspoeld Gondeloppervlak van Enkel- en Dubbelstroom Straalmotoren voor Civiele VLiegtuigen
     (Torenbeek & Berenschot, 1983)."""
 
-    ops_metrics: OperatingMetrics
+    ops_metrics: None
     architecture: TurbofanArchitecture
 
     def check_architecture(self):
@@ -231,7 +230,7 @@ class NOx:
     """Calculates the NOx emissions of the aircraft engine. Equations are taken from GasTurb 13:
     Design and Off-Design Performance of Gas Turbines (Kurzke, 2018)."""
 
-    ops_metrics: OperatingMetrics
+    ops_metrics: None
 
     def check_architecture(self):
 
@@ -264,7 +263,7 @@ class Noise:
     """Calculates the Noise emissions of the aircraft engine. Equations are taken from Interim
     Prediction Method for Jet Noise (Stone, 1974)."""
 
-    ops_metrics: OperatingMetrics
+    ops_metrics: None
     architecture: TurbofanArchitecture
 
     def check_architecture(self):
