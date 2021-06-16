@@ -34,7 +34,7 @@ pip install .
 
 ## Engine Cycle Analysis Structure
 
-Engine cycle analysis problem are define based on a design point and zero or more off-design points. Each of these
+Engine cycle analysis problem are defined based on a design point and zero or more off-design points. Each of these
 points define operating conditions such as Mach number and altitude, and requirements like required thrust and bleed
 and/or power offtakes. The design point is first solved by sizing the cross-sectional areas of all flow stations and
 balancing the engine such that the required thrust is produced. Then, the off-design points are synchronized with the
