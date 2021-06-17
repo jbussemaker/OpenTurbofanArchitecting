@@ -95,8 +95,8 @@ of 75 and termination criteria of 1000 evaluations was used to run the optimizat
 The architectures were analyzed, and their results are presented. All feasibility constraints are satisfied. Approximately 49% of
 the generated engine architectures converged during the initial DOE, whereas this increased to 92% for the last iteration.
 
-![image](open_turb_arch/tests/results_/Simple_Type_TW.svg) ![image](open_turb_arch/tests/results_/Simple_Type_LD.svg) ![image](open_turb_arch/tests/results_/Simple_Type_NN.svg)
-![image](open_turb_arch/tests/results_/Simple_Shaft_TW.svg) ![image](open_turb_arch/tests/results_/Simple_Shaft_LD.svg) ![image](open_turb_arch/tests/results_/Simple_Shaft_NN.svg)
+![image](open_turb_arch/tests/results/Simple_Type_TW.svg) ![image](open_turb_arch/tests/results/Simple_Type_LD.svg) ![image](open_turb_arch/tests/results/Simple_Type_NN.svg)
+![image](open_turb_arch/tests/results/Simple_Shaft_TW.svg) ![image](open_turb_arch/tests/results/Simple_Shaft_LD.svg) ![image](open_turb_arch/tests/results/Simple_Shaft_NN.svg)
 
 ### Realistic Architecting Problem
 
@@ -114,10 +114,10 @@ NSGA-II algorithm is used as for the simple architecting problem. The population
 All constraints imposed on the architecture are satisfied. This shows that the benchmark problem achieves feasible results for the engine
 disciplines. From the generated engine architectures, 33% converged during the initial DOE whereas this increased to 92% for the last iteration.
 
-![image](open_turb_arch/tests/results_/Realistic_Type_TW.svg) ![image](open_turb_arch/tests/results_/Realistic_Type_LD.svg) ![image](open_turb_arch/tests/results_/Realistic_Type_NN.svg)
-![image](open_turb_arch/tests/results_/Realistic_Shaft_TW.svg) ![image](open_turb_arch/tests/results_/Realistic_Shaft_LD.svg) ![image](open_turb_arch/tests/results_/Realistic_Shaft_NN.svg)
-![image](open_turb_arch/tests/results_/Realistic_Special_TW.svg) ![image](open_turb_arch/tests/results_/Realistic_Special_LD.svg) ![image](open_turb_arch/tests/results_/Realistic_Special_NN.svg)
-![image](open_turb_arch/tests/results_/Realistic_Type_Pareto.svg) ![image](open_turb_arch/tests/results_/Realistic_Shaft_Pareto.svg) ![image](open_turb_arch/tests/results_/Realistic_Special_Pareto.svg)
+![image](open_turb_arch/tests/results/Realistic_Type_TW.svg) ![image](open_turb_arch/tests/results/Realistic_Type_LD.svg) ![image](open_turb_arch/tests/results/Realistic_Type_NN.svg)
+![image](open_turb_arch/tests/results/Realistic_Shaft_TW.svg) ![image](open_turb_arch/tests/results/Realistic_Shaft_LD.svg) ![image](open_turb_arch/tests/results/Realistic_Shaft_NN.svg)
+![image](open_turb_arch/tests/results/Realistic_Special_TW.svg) ![image](open_turb_arch/tests/results/Realistic_Special_LD.svg) ![image](open_turb_arch/tests/results/Realistic_Special_NN.svg)
+![image](open_turb_arch/tests/results/Realistic_Type_Pareto.svg) ![image](open_turb_arch/tests/results/Realistic_Shaft_Pareto.svg) ![image](open_turb_arch/tests/results/Realistic_Special_Pareto.svg)
 
 ## Installation
 
