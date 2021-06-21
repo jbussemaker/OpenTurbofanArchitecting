@@ -175,19 +175,18 @@ class Turbine(BaseTurboMachinery):
 
 
 @dataclass(frozen=False)
-class Gearbox(BaseTurboMachinery):
+class Gearbox(ArchElement):
     fan_shaft: ArchElement = None
     core_shaft: ArchElement = None
 
     def add_element(self, cycle: pyc.Cycle, thermo_data, design: bool) -> om.Group:
-
-        el = pyc.Gearbox()
+        el = pyc.Gearbox(design=design)
         cycle.pyc_add_element(self.name, el, promotes_inputs=[('N_in', self.core_shaft.name+'_Nmech'), ('N_out', self.fan_shaft.name+'_Nmech')])
         return el
 
     def connect(self, cycle: pyc.Cycle):
         cycle.connect(self.name+'.trq_in', '%s.trq_%d' % (self.core_shaft.name, 2))   # LP shaft
-        cycle.connect(self.name+'.trq_out', '%s.trq_%d' % (self.fan_shaft.name, 1))    # Fan
+        cycle.connect(self.name+'.trq_out', '%s.trq_%d' % (self.fan_shaft.name, 1))    # Fan shaft
 
     def connect_des_od(self, mp_cycle: pyc.MPCycle):
         mp_cycle.pyc_connect_des_od(self.name+'.gear_ratio', self.name+'.gear_ratio')
