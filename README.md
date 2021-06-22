@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4964341.svg)](https://doi.org/10.5281/zenodo.4964341)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5011359.svg)](https://doi.org/10.5281/zenodo.5011359)
 
 # Open Turbofan Architecting
 
