@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4964341.svg)](https://doi.org/10.5281/zenodo.4964341)
+
 # Open Turbofan Architecting
 
 OTA is an open-source system architecture optimization problem with the purpose of demonstrating the principle of
