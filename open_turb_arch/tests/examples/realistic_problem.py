@@ -30,8 +30,8 @@ os.environ['OPENMDAO_REQUIRE_MPI'] = 'false'  # Suppress OpenMDAO MPI import war
 from open_turb_arch.architecting.architecting_problem import get_architecting_problem, get_pymoo_architecting_problem
 
 from pymoo.optimize import minimize
-from pymoo.algorithms.nsga2 import NSGA2
-from pymoo.operators.sampling.latin_hypercube_sampling import LatinHypercubeSampling
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.operators.sampling.lhs import LatinHypercubeSampling
 
 if __name__ == '__main__':
     architecting_problem = get_architecting_problem()
@@ -45,8 +45,7 @@ if __name__ == '__main__':
     # The number of processes to be used
     with multiprocessing.Pool(3) as pool:
         t = time.time()
-        problem = get_pymoo_architecting_problem(architecting_problem)
-        problem.parallelization = ('starmap', pool.starmap)
+        problem = get_pymoo_architecting_problem(architecting_problem, parallel_pool=pool)
 
         algorithm = NSGA2(
             pop_size=205,

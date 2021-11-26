@@ -76,8 +76,8 @@ def get_architecting_problem():
     )
 
 
-def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem):
-    prob = PymooArchitectingProblem(architecting_problem)
+def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem, parallel_pool=None):
+    prob = PymooArchitectingProblem(architecting_problem, parallel_pool=parallel_pool)
 
     path = os.path.join(os.path.dirname(__file__), 'architecting_problem_pf.json')
     if os.path.exists(path):

@@ -17,16 +17,17 @@ Contact: jasper.bussemaker@dlr.de
 
 import numpy as np
 from typing import *
-from pymoo.model.repair import Repair
-from pymoo.model.problem import Problem
-from pymoo.model.population import Population
+from multiprocessing import Pool
+from pymoo.core.repair import Repair
+from pymoo.core.population import Population
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
+from pymoo.core.problem import Problem, ElementwiseProblem, starmap_parallelized_eval, looped_eval
 
 __all__ = ['PymooArchitectingProblem', 'ArchitectingProblemRepair']
 
 
-class PymooArchitectingProblem(Problem):
+class PymooArchitectingProblem(ElementwiseProblem):
     """
     Pymoo (https://pymoo.org/) wrapper for an architecting problem.
 
@@ -42,7 +43,7 @@ class PymooArchitectingProblem(Problem):
     ```
     """
 
-    def __init__(self, problem: ArchitectingProblem, parallelization=None):
+    def __init__(self, problem: ArchitectingProblem, parallel_pool: Pool = None):
         self.problem = problem
 
         n_vars = len(problem.free_opt_des_vars)
@@ -59,8 +60,15 @@ class PymooArchitectingProblem(Problem):
         self.is_discrete_mask = np.bitwise_or(self.is_int_mask, self.is_cat_mask)
         self.is_cont_mask = ~self.is_discrete_mask
 
+        if parallel_pool is None:
+            runner = None
+            func_eval = looped_eval
+        else:
+            runner = parallel_pool.starmap
+            func_eval = starmap_parallelized_eval
+
         super(PymooArchitectingProblem, self).__init__(
-            n_vars, n_objs, n_constr, xl=xl, xu=xu, elementwise_evaluation=True, parallelization=parallelization)
+            n_var=n_vars, n_objs=n_objs, n_constr=n_constr, xl=xl, xu=xu, runner=runner, func_eval=func_eval)
 
         self.obj_is_max = [obj.dir == ObjectiveDirection.MAXIMIZE for obj in problem.opt_objectives]
         self.con_ref = [(con.dir == ConstraintDirection.GREATER_EQUAL_THAN, con.limit_value)

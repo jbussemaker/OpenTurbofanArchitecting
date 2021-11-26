@@ -478,8 +478,8 @@ def test_openmdao_component(an_problem):
 
 
 def test_pymoo_problem(an_problem):
-    from pymoo.model.evaluator import Evaluator
-    from pymoo.operators.sampling.random_sampling import FloatRandomSampling
+    from pymoo.core.evaluator import Evaluator
+    from pymoo.operators.sampling.rnd import FloatRandomSampling
 
     problem = ArchitectureProblemTester(
         analysis_problem=an_problem,
@@ -553,8 +553,8 @@ def test_pymoo_problem(an_problem):
 
 def test_pymoo_parallel_eval(an_problem):
     import multiprocessing
-    from pymoo.model.evaluator import Evaluator
-    from pymoo.operators.sampling.random_sampling import FloatRandomSampling
+    from pymoo.core.evaluator import Evaluator
+    from pymoo.operators.sampling.rnd import FloatRandomSampling
 
     problem = ArchitectureProblemTester(
         analysis_problem=an_problem,

@@ -133,9 +133,9 @@ class ArchitectingProblem:
         from open_turb_arch.architecting.platypus import PlatypusArchitectingProblem
         return PlatypusArchitectingProblem(self)
 
-    def get_pymoo_problem(self):
+    def get_pymoo_problem(self, parallel_pool=None):
         from open_turb_arch.architecting.pymoo import PymooArchitectingProblem
-        return PymooArchitectingProblem(self)
+        return PymooArchitectingProblem(self, parallel_pool=parallel_pool)
 
     def get_openmdao_component(self):
         from open_turb_arch.architecting.openmdao import ArchitectingProblemComponent

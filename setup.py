@@ -47,7 +47,7 @@ if __name__ == '__main__':
             'ordered_set',
             'numpy',
             'Platypus-Opt',
-            'pymoo',
+            'pymoo>=0.5.0',
             'lxml',
         ],
         python_requires='>=3.6',
