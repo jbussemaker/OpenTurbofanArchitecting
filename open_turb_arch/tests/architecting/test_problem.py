@@ -23,7 +23,6 @@ from open_turb_arch.architecting.pymoo import *
 from open_turb_arch.architecting.metric import *
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
-from open_turb_arch.architecting.platypus import *
 from open_turb_arch.architecting.openmdao import *
 from open_turb_arch.evaluation.architecture.flow import *
 from open_turb_arch.evaluation.analysis.balancer import *
@@ -371,55 +370,6 @@ def test_choice_constraints(an_problem):
     assert con[0] == dv_sum
 
 
-def test_platypus_problem(an_problem):
-    from platypus.core import Solution
-    from platypus.types import Real, Integer
-    from platypus.operators import RandomGenerator
-
-    problem = ArchitectureProblemTester(
-        analysis_problem=an_problem,
-        choices=[DummyChoice()],
-        objectives=[DummyMetric()],
-        constraints=[DummyMetric(condition=an_problem.evaluate_conditions[0])],
-        metrics=[DummyMetric()],
-    )
-
-    platypus_problem = problem.get_platypus_problem()
-    assert isinstance(platypus_problem, PlatypusArchitectingProblem)
-    assert platypus_problem.nvars == 3
-    assert platypus_problem.nobjs == 1
-    assert platypus_problem.nconstrs == 1
-
-    assert isinstance(platypus_problem.types[0], Real)
-    assert platypus_problem.types[0].min_value == 5.
-    assert platypus_problem.types[0].max_value == 20.
-
-    assert isinstance(platypus_problem.types[1], Integer)
-    assert platypus_problem.types[1].min_value == 0
-    assert platypus_problem.types[1].max_value == 2
-
-    assert isinstance(platypus_problem.types[2], Integer)
-    assert platypus_problem.types[2].min_value == 0
-    assert platypus_problem.types[2].max_value == 2
-
-    assert platypus_problem.directions[0] == -1
-    assert platypus_problem.constraints[0].op == '<=0.05'
-
-    generator = RandomGenerator()
-    for _ in range(100):
-        sol: Solution = generator.generate(platypus_problem)
-        dv1 = sol.variables[0]
-        assert not sol.evaluated
-
-        platypus_problem(sol)
-        assert sol.evaluated
-        assert platypus_problem.types[1].decode(sol.variables[1]) == 0
-        assert platypus_problem.types[2].decode(sol.variables[2]) == 1
-
-        assert sol.objectives[:] == [.10*dv1]
-        assert sol.constraints[:] == [.15*dv1]
-
-
 def test_openmdao_component(an_problem):
     import openmdao.api as om
 
@@ -477,6 +427,7 @@ def test_openmdao_component(an_problem):
     om_prob.run_driver()
 
 
+@pytest.mark.skipif(not HAS_PYMOO)
 def test_pymoo_problem(an_problem):
     from pymoo.core.evaluator import Evaluator
     from pymoo.operators.sampling.rnd import FloatRandomSampling
@@ -551,6 +502,7 @@ def test_pymoo_problem(an_problem):
     assert np.all(np.round(x1) == x1)
 
 
+@pytest.mark.skipif(not HAS_PYMOO)
 def test_pymoo_parallel_eval(an_problem):
     import multiprocessing
     from pymoo.core.evaluator import Evaluator

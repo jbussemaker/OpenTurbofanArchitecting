@@ -103,7 +103,7 @@ if __name__ == '__main__':
     )
 
     architecting_problem.print_results = True
-    architecting_problem._max_iter = 30
+    architecting_problem.max_iter = 30
     print(len(architecting_problem.free_opt_des_vars))
     # architecting_problem.save_results_folder = 'C:\\Users\\thiba\\OneDrive\\Documenten\\TU DELFT\\MSc 1\\Thesis\\3. Execution\\Results\\Test'
     # architecting_problem.save_results_combined = True

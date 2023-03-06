@@ -24,8 +24,6 @@ from open_turb_arch.architecting.metrics import *
 from open_turb_arch.architecting.turbofan import *
 from open_turb_arch.evaluation.analysis import *
 
-from open_turb_arch.architecting.pymoo import *
-
 
 def get_architecting_problem():
     analysis_problem = AnalysisProblem(
@@ -77,6 +75,9 @@ def get_architecting_problem():
 
 
 def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem, parallel_pool=None):
+    from open_turb_arch.architecting.pymoo import HAS_PYMOO, PymooArchitectingProblem
+    if not HAS_PYMOO:
+        raise RuntimeError('pymoo not available or other version than 0.5.0 installed')
     prob = PymooArchitectingProblem(architecting_problem, parallel_pool=parallel_pool)
 
     path = os.path.join(os.path.dirname(__file__), 'architecting_problem_pf.json')

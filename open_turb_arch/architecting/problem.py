@@ -51,7 +51,7 @@ class ArchitectingProblem:
         self._an_problem = analysis_problem
         self.print_results = False
         self.verbose = False
-        self._max_iter = max_iter
+        self.max_iter = max_iter
 
         self._choices = sorted(choices, key=lambda choice: choice.get_construction_order())
         self._objectives = objectives
@@ -129,12 +129,10 @@ class ArchitectingProblem:
         if len(self.opt_objectives) == 0:
             raise RuntimeError('No objectives to design for!')
 
-    def get_platypus_problem(self):
-        from open_turb_arch.architecting.platypus import PlatypusArchitectingProblem
-        return PlatypusArchitectingProblem(self)
-
     def get_pymoo_problem(self, parallel_pool=None):
-        from open_turb_arch.architecting.pymoo import PymooArchitectingProblem
+        from open_turb_arch.architecting.pymoo import PymooArchitectingProblem, HAS_PYMOO
+        if not HAS_PYMOO:
+            raise RuntimeError('pymoo not available or other version than 0.5.0 installed')
         return PymooArchitectingProblem(self, parallel_pool=parallel_pool)
 
     def get_openmdao_component(self):
@@ -251,7 +249,7 @@ class ArchitectingProblem:
                     is_active[i_dv+j] = False
                 elif is_act_or_overwrite is not True:  # Explicit overwritten value provided
                     imputed_full_design_vector[i_dv+j] = self._opt_des_vars[i][j].encode(is_act_or_overwrite)
-                    is_active[i_dv+j] = False
+                    is_active[i_dv+j] = True
 
             i_dv += n_dv
 
@@ -294,7 +292,7 @@ class ArchitectingProblem:
     def evaluate_architecture(self, architecture: TurbofanArchitecture) -> OperatingMetricsMap:
 
         # Build the pyCycle/OpenMDAO analysis chain
-        builder = CycleBuilder(architecture, self.analysis_problem, max_iter=self._max_iter)
+        builder = CycleBuilder(architecture, self.analysis_problem, max_iter=self.max_iter)
         openmdao_problem = builder.get_problem()
 
         # Run the problem

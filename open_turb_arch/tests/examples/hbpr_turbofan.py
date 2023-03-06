@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     architecting_problem = get_architecting_problem()
     architecting_problem.print_results = True
-    architecting_problem._max_iter = 30
+    architecting_problem.max_iter = 30
 
     dv = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     architecture, imputed_dv = architecting_problem.generate_architecture(dv)
