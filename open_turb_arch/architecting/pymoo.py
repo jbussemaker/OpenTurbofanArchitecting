@@ -18,13 +18,27 @@ Contact: jasper.bussemaker@dlr.de
 import numpy as np
 from typing import *
 from multiprocessing import Pool
-from pymoo.core.repair import Repair
-from pymoo.core.population import Population
 from open_turb_arch.architecting.problem import *
 from open_turb_arch.architecting.opt_defs import *
-from pymoo.core.problem import Problem, ElementwiseProblem, starmap_parallelized_eval, looped_eval
 
-__all__ = ['PymooArchitectingProblem', 'ArchitectingProblemRepair']
+try:
+    from pymoo.version import __version__
+    if __version__ != '0.5.0':
+        raise ImportError
+    from pymoo.core.repair import Repair
+    from pymoo.core.population import Population
+    from pymoo.core.problem import Problem, ElementwiseProblem, starmap_parallelized_eval, looped_eval
+    HAS_PYMOO = True
+except ImportError:
+    HAS_PYMOO = False
+
+    class Repair:
+        pass
+
+    class ElementwiseProblem:
+        pass
+
+__all__ = ['HAS_PYMOO', 'PymooArchitectingProblem', 'ArchitectingProblemRepair']
 
 
 class PymooArchitectingProblem(ElementwiseProblem):
@@ -74,7 +88,7 @@ class PymooArchitectingProblem(ElementwiseProblem):
         self.con_ref = [(con.dir == ConstraintDirection.GREATER_EQUAL_THAN, con.limit_value)
                         for con in problem.opt_constraints]
 
-    def get_repair(self) -> Repair:
+    def get_repair(self) -> 'Repair':
         return ArchitectingProblemRepair(self.is_discrete_mask)
 
     @staticmethod
@@ -164,7 +178,7 @@ class ArchitectingProblemRepair(Repair):
         self.is_discrete_mask = is_discrete_mask
         self.impute = impute
 
-    def _do(self, problem: Problem, pop: Union[Population, np.ndarray], **kwargs):
+    def _do(self, problem: 'Problem', pop: Union['Population', np.ndarray], **kwargs):
         is_array = not isinstance(pop, Population)
         x = pop if is_array else pop.get("X")
 

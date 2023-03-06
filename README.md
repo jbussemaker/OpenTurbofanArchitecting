@@ -428,24 +428,3 @@ prob.setup()
 # Run
 prob.run_driver()
 ```
-
-#### Platypus
-
-Integration with [Platypus](https://platypus.readthedocs.io/):
-```python
-from platypus.algorithms import NSGAII
-from open_turb_arch.architecting import *
-
-# Define architecting problem
-architecting_problem = ArchitectingProblem(...)
-
-# Define Platypus algorithm
-problem = architecting_problem.get_platypus_problem()
-algorithm = NSGAII(problem)
-
-# Run
-n_eval = 10000
-algorithm.run(n_eval)
-
-print(algorithm.result)
-```

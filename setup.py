@@ -19,10 +19,7 @@ from open_turb_arch import __version__
 from setuptools import setup, find_packages
 
 if __name__ == '__main__':
-    # Linking to a custom repository unfortunately only works when installing using pip
-    if 'pip' not in __file__:  # https://stackoverflow.com/a/10386262
-        raise RuntimeError('Install using pip: pip install .')
-
+    # Note: it is best to install using pip!
     setup(
         name='open_turb_arch',
         version=__version__,
@@ -44,12 +41,17 @@ if __name__ == '__main__':
             'dataclasses',
             'pycycle @ git+https://github.com/jbussemaker/pyCycle.git#egg=pycycle',
             'openmdao==3.4.0',
+            'networkx==2.8.8',  # Used by OpenMDAO
             'ordered_set',
             'numpy',
-            'Platypus-Opt',
-            'pymoo>=0.5.0',
+            'pymoo==0.6.0',
             'lxml',
         ],
+        extras_require={
+            'pymoo': [
+                'pymoo==0.5.0',
+            ],
+        },
         python_requires='>=3.6',
         packages=find_packages(),
         package_data={
