@@ -44,7 +44,7 @@ if __name__ == '__main__':
             'networkx==2.8.8',  # Used by OpenMDAO
             'ordered_set',
             'numpy',
-            'pymoo==0.6.0',
+            'pymoo~=0.6.0',
             'lxml',
         ],
         extras_require={
