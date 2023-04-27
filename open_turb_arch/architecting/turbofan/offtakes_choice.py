@@ -79,7 +79,7 @@ class OfftakesChoice(ArchitectingChoice):
         compressor_number = bleed_offtake_location if compressors >= bleed_offtake_location else compressors
         compressor = architecture.get_elements_by_type(Compressor)[-compressor_number]
 
-        is_active = [shaft_number, compressor_number]
+        is_active = [shaft_number if shafts > 1 else False, compressor_number if compressors > 1 else False]
 
         # Add offtakes
         self._power_location(analysis_problem, shaft)
