@@ -74,6 +74,18 @@ def get_architecting_problem():
     )
 
 
+def load_pareto_front():
+    path = os.path.join(os.path.dirname(__file__), 'architecting_problem_pf.json')
+    if os.path.exists(path):
+        with open(path, 'r') as fp:
+            pf_data = json.load(fp)
+
+    x_pf = np.array(pf_data['x'])
+    f_pf = np.array(pf_data['f'])
+    g_pf = np.array(pf_data['g'])
+    return x_pf, f_pf, g_pf
+
+
 def get_pymoo_architecting_problem(architecting_problem: ArchitectingProblem, parallel_pool=None):
     from open_turb_arch.architecting.pymoo import HAS_PYMOO, PymooArchitectingProblem
     if not HAS_PYMOO:
