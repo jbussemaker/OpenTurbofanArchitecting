@@ -149,6 +149,7 @@ class CoolingBleedChoice(ArchitectingChoice):
         ab_lpc_frac = [ab_li_frac_w, ab_ll_frac_w]
 
         combined_fracs = [eb_hb_frac, eb_ih_frac, eb_li_frac, ab_hpc_frac, ab_ipc_frac, ab_lpc_frac]
+        adjusted_fracs = []
         for i, frac in enumerate(combined_fracs):
             frac[0] = frac[0] if has_ip else 0
             frac[1] = frac[1] if has_lp else 0
@@ -158,14 +159,15 @@ class CoolingBleedChoice(ArchitectingChoice):
                 frac[bld] = frac[bld] if frac[bld] >= 1e-2 else 0
             frac_hpt = 1-frac[0]-frac[1] if 1-frac[0]-frac[1] >= 1e-2 else 0
             frac_adjusted = [frac_hpt, frac[0], frac[1]]
+            adjusted_fracs.append(frac_adjusted)
             combined_fracs[i] = [x*totals[i] for x in frac_adjusted]
 
-        is_active = [True, combined_fracs[0][1], combined_fracs[0][2],
-                     eb_ih_total, combined_fracs[1][1], combined_fracs[1][2],
-                     eb_li_total, combined_fracs[2][1], combined_fracs[2][2],
-                     True, combined_fracs[3][1], combined_fracs[3][2],
-                     ab_ipc_total, combined_fracs[4][1], combined_fracs[4][2],
-                     ab_lpc_total, combined_fracs[5][1], combined_fracs[5][2]]
+        is_active = [True, adjusted_fracs[0][1], adjusted_fracs[0][2],
+                     eb_ih_total if has_ip else False, adjusted_fracs[1][1] if has_ip else False, adjusted_fracs[1][2] if has_ip else False,
+                     eb_li_total if has_lp else False, adjusted_fracs[2][1] if has_lp else False, adjusted_fracs[2][2] if has_lp else False,
+                     True, adjusted_fracs[3][1], adjusted_fracs[3][2],
+                     ab_ipc_total if has_ip else False, adjusted_fracs[4][1] if has_ip else False, adjusted_fracs[4][2] if has_ip else False,
+                     ab_lpc_total if has_lp else False, adjusted_fracs[5][1] if has_lp else False, adjusted_fracs[5][2] if has_lp else False]
 
         # Add the inter-bleed
         self._include_bleed_inter(architecture, combined_fracs[0:3])

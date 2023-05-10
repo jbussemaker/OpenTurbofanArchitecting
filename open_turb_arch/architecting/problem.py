@@ -48,6 +48,7 @@ class ArchitectingProblem:
                  metrics: List[ArchitectingMetric] = None, max_iter=30, save_results_folder=None,
                  save_results_combined=None):
 
+        self._base_an_problem = analysis_problem
         self._an_problem = analysis_problem
         self.print_results = False
         self.verbose = False
@@ -235,6 +236,7 @@ class ArchitectingProblem:
     def generate_architecture(self, design_vector: DesignVector) -> Tuple[TurbofanArchitecture, DesignVector]:
         imputed_full_design_vector, decoded_design_vector = self.get_full_design_vector(design_vector)
 
+        self._an_problem = copy.deepcopy(self._base_an_problem)
         architecture = self._get_default_architecture()
         i_dv = 0
         is_active = np.ones((len(imputed_full_design_vector),), dtype=bool)

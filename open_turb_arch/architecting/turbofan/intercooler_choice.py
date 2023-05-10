@@ -79,15 +79,18 @@ class IntercoolerChoice(ArchitectingChoice):
 
         # The intercooler choice is only active if a fan is included
         include_ic, ic_location, radius, length, number = design_vector
+        if not fan_present:
+            include_ic = False
 
         # Modify intercooler location based on number of turbines
         turbines = len(architecture.get_elements_by_type(Turbine))
         modified_ic_location = ic_location if ic_location <= turbines-1 else turbines-1
-        modified_ic_location = modified_ic_location if include_ic else 0
+        if not include_ic:
+            modified_ic_location = False
 
-        is_active = [fan_present, modified_ic_location, fan_present and include_ic, fan_present and include_ic, fan_present and include_ic]
+        is_active = [fan_present, modified_ic_location, include_ic, include_ic, include_ic]
 
-        if fan_present and include_ic == 1:
+        if include_ic:
             self._include_ic(architecture, modified_ic_location, radius, length, number)
 
         return is_active
