@@ -40,7 +40,7 @@ if __name__ == '__main__':
             'pytest',
             'dataclasses',
             'pycycle @ git+https://github.com/jbussemaker/pyCycle.git#egg=pycycle',
-            'openmdao==3.4.0',
+            'openmdao~=3.0',
             'networkx==2.8.8',  # Used by OpenMDAO
             'ordered_set',
             'numpy',
