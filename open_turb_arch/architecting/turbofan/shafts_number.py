@@ -120,7 +120,12 @@ class ShaftChoice(ArchitectingChoice):
         elif pr_percentages[1] == 0:  # 2 shafts
             pr_base = (opr_core/(pr_percentages[0]-pr_percentages[0]**2))**(1/2)
         else:  # 3 shafts
-            pr_base = (opr_core/(pr_percentages[0]*pr_percentages[1]-pr_percentages[0]**2*pr_percentages[1]-pr_percentages[0]*pr_percentages[1]**2))**(1/3)
+            try:
+                pr_base = (opr_core/(pr_percentages[0]*pr_percentages[1]-pr_percentages[0]**2*pr_percentages[1]-pr_percentages[0]*pr_percentages[1]**2))**(1/3)
+            except ZeroDivisionError:
+                print(f'SHAFT ZERO DIV ERROR: {design_vector} --> {pr_percentages}')
+                pr_percentages = [1/3, 1/3]
+                pr_base = (opr_core/(pr_percentages[0]*pr_percentages[1]-pr_percentages[0]**2*pr_percentages[1]-pr_percentages[0]*pr_percentages[1]**2))**(1/3)
         pr_compressor = [pr_base*(1-pr_percentages[0]-pr_percentages[1]), pr_base*pr_percentages[0], pr_base*pr_percentages[1]]
 
         is_active = [True, True, pr_percentages[0] != 0, pr_percentages[1] != 0, True, number_shafts >= 2, number_shafts == 3]
