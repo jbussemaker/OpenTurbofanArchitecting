@@ -44,7 +44,7 @@ if __name__ == '__main__':
             'networkx==2.8.8',  # Used by OpenMDAO
             'scipy~=1.10.0',  # Best to install via conda
             'ordered_set',
-            'numpy',  # Best to install via conda
+            'numpy~=1.22.0',  # Best to install via conda
             'pymoo~=0.6.0',
             'lxml',
         ],
