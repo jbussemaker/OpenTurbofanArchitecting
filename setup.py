@@ -42,9 +42,9 @@ if __name__ == '__main__':
             'pycycle @ git+https://github.com/jbussemaker/pyCycle.git#egg=pycycle',
             'openmdao @ git+https://github.com/jbussemaker/OpenMDAO.git@install_req_fix#egg=openmdao',
             'networkx==2.8.8',  # Used by OpenMDAO
-            'scipy~=1.10.0',  # Best to install via conda
+            'scipy~=1.10',  # Best to install via conda
             'ordered_set',
-            'numpy~=1.22.0',  # Best to install via conda
+            'numpy',
             'pymoo~=0.6.0',
             'lxml',
         ],
